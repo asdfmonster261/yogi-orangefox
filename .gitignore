@@ -2,3 +2,4 @@
 /releases
 .build_platform.conf
 /subpatch/__pycache__
+/__pycache__
