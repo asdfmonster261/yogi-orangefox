@@ -25,8 +25,6 @@
 
 PROPS_DIR="/system/etc/device_props"
 
-# Apply key=value properties from a prop file via resetprop.
-# Skips empty lines and comments (#).
 apply_prop_file() {
     local file="$1"
     [ -f "$file" ] || return 1
@@ -42,10 +40,7 @@ apply_prop_file() {
 
 setenforce 0
 
-# Detect device codename from kernel-set ro.hardware
 device_code=$(getprop ro.hardware)
-
-# Determine SoC family from device codename
 case "$device_code" in
     panther|cheetah|lynx|gs201)      family="gs201" ;;
     shiba|husky|akita|zuma)          family="zuma" ;;
@@ -53,20 +48,13 @@ case "$device_code" in
     *)                                family="" ;;
 esac
 
-# Apply family-common properties (shared across all devices in the SoC family)
 if [ -n "$family" ]; then
     apply_prop_file "${PROPS_DIR}/${family}_common.prop"
 fi
-
-# Apply device-specific properties (model, fingerprint, build description)
 apply_prop_file "${PROPS_DIR}/${device_code}.prop"
-
-# Swap twrp.flags if this is a GS201 device (UFS at 14700000 instead of 13200000)
 if [ "$family" = "gs201" ] && [ -f /system/etc/twrp_gs201.flags ]; then
     cp -f /system/etc/twrp_gs201.flags /system/etc/twrp.flags
 fi
-
-# Workaround: set servicemanager.ready so bootcontrol doesn't block SPL downgrades
 setprop servicemanager.ready true
 resetprop servicemanager.ready true
 
