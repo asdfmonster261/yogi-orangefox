@@ -1,0 +1,3 @@
+# init.recovery.husky.rc — Pixel 8 Pro (husky) stub.
+# Loaded by init when ro.hardware=husky. All actual init code is in init.recovery.zuma.rc.
+import /init.recovery.pixel_common.rc

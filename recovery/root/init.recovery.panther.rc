@@ -1,0 +1,7 @@
+# init.recovery.panther.rc — Pixel 7 (panther) stub.
+# Loaded by init when ro.hardware=panther. All actual init code is in init.recovery.pixel_common.rc.
+
+on early-init
+    setprop DOF_SCREEN_H 2400
+
+import /init.recovery.pixel_common.rc

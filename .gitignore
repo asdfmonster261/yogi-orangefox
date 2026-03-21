@@ -1,0 +1,4 @@
+/docs
+/releases
+.build_platform.conf
+/subpatch/__pycache__

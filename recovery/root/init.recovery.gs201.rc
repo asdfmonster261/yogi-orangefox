@@ -1,0 +1,8 @@
+# init.recovery.gs201.rc — GS201 SoC (Tensor G2) stub.
+# Loaded by init when ro.hardware=gs201. All actual init code is in init.recovery.pixel_common.rc.
+# Fallback: if kernel sets ro.hardware=gs201 instead of device codename.
+
+on early-init
+    setprop DOF_SCREEN_H 2400
+
+import /init.recovery.pixel_common.rc
