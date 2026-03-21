@@ -1,0 +1,3 @@
+# init.recovery.zumapro.rc — ZumaPro SoC (Tensor G4) stub.
+# Loaded by init when ro.hardware=zumapro. All actual init code is in init.recovery.pixel_common.rc.
+import /init.recovery.pixel_common.rc

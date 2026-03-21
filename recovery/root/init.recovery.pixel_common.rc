@@ -1,0 +1,124 @@
+# init.recovery.pixel_common.rc - OrangeFox Recovery for all Tensor SoC Pixels.
+# Shared init for all devices across gs201 (G2), zuma (G3), zumapro (G4) families.
+#
+# This file is NOT auto-loaded by init (init only loads init.recovery.${ro.hardware}.rc).
+# Instead, each device-specific RC imports this file.
+#
+# Init chain: kernel -> init -> init.recovery.{device}.rc -> this file
+# Service chain: storageproxyd -> keymint -> weaver (for FBE CE decryption)
+# DOF_SCREEN_H is set in per-device stubs (e.g. init.recovery.husky.rc) before
+# this file is imported, so it's available before data.cpp reads it.
+
+on early-init
+    # Run device identity detection BEFORE on init/early-boot.
+    # Sets ro.product.model, ro.product.device, fingerprints, etc. from
+    # /system/etc/device_props/{device}.prop based on ro.hardware.
+    # Must complete before USB gadget writes ${ro.product.model} to configfs.
+    exec u:r:recovery:s0 root root -- /system/bin/sh /system/bin/runatinit.sh
+
+on init
+    # --- CPU temperature zone discovery ---
+    # TWRP reads TW_CUSTOM_CPU_TEMP_PATH (/dev/thermal_cpu) for the CPU temperature widget.
+    # Zone numbering differs across Tensor generations: on zumapro (Pixel 9) the
+    # cp_thermal_zone.ko module is absent, so zone0 may not be the BIG cluster.
+    # setup_cpu_temp.sh enumerates zones by type name and symlinks the BIG zone.
+    exec u:r:recovery:s0 root root -- /system/bin/sh /system/bin/setup_cpu_temp.sh
+
+    # --- USB controller setup (DWC3 at 11210000, shared across all Tensor Pixels: gs201/zuma/zumapro) ---
+    wait /sys/devices/platform/11210000.usb/11210000.dwc3/driver 10
+    setprop sys.usb.controller "11210000.dwc3"
+    setprop sys.usb.configfs 1
+    setprop servicemanager true
+    start vendor.boot-hal-1-2
+    # Set BOTH persist and runtime USB config to ensure triggers fire in recovery
+    setprop persist.sys.usb.config mtp,adb
+    setprop sys.usb.config mtp,adb
+    setprop vendor.usb.use_ffs_mtp 1
+
+    # --- Security patch properties required by KeyMint patchlevel validation ---
+    # Without these, keymint panics on startup (regex mismatch on empty string).
+    # Using 2099-12-31 ensures patchlevel >= any key creation date (upgrade always allowed).
+    # These are fallbacks - prop.default should already set them, but may fail to load.
+    setprop ro.build.version.security_patch "2099-12-31"
+    setprop ro.vendor.build.security_patch "2099-12-31"
+
+    # --- Trusty TEE init: storageproxyd -> keymint -> weaver ---
+    # Wait for Trusty IPC device (created by trusty-ipc kernel module)
+    wait /dev/trusty-ipc-dev0 10
+
+    # Start storage proxy FIRST - keymint needs RPMB access via Trusty
+    start recovery_storageproxyd
+    # Wait for proxy to connect to Trusty before starting keymint
+    wait /dev/.recovery_sp_ready 5
+
+    # Start KeyMint HAL (registers binder services for keystore2 -> metadata decrypt)
+    # Both services are defined - the wrong one for the current SoC will fail
+    # harmlessly (binary missing or Trusty TA mismatch) and stop immediately.
+    # Zuma/Zumapro -> Rust keymint; GS201 -> C++ keymint.
+    start vendor.keymint.rust-trusty
+    start vendor.keymint-trusty
+
+    # --- Titan M2 / GSC init ---
+    # Wait for GSC device (Titan M2 / Citadel chip - used for Weaver CE keys)
+    wait /dev/gsc0 10
+
+    # Start recovery_weaver - talks to Titan M2 directly via /dev/gsc0,
+    # registers IWeaver/default for CE FBE decryption.
+    # Replaces both citadeld and weaver-service.citadel (no A15 deps).
+    start recovery_weaver
+
+on boot
+    setprop persist.sys.usb.config mtp,adb
+    setprop sys.usb.config mtp,adb
+    setprop vendor.usb.use_ffs_mtp 1
+
+    # Clamp LTPO panel minimum refresh rate to 30Hz to prevent UI ghosting.
+    # LTPO panels (husky, komodo etc.) idle at 1Hz causing visible ghosting;
+    # standard 30-120Hz panels are unaffected (sysfs won't exist on those).
+    write /sys/devices/platform/exynos-drm/primary-panel/min_vrefresh 60
+
+# ============================================================================
+# Services - custom HAL proxies for recovery environment
+# ============================================================================
+
+# Persistent storage proxy daemon for Trusty TEE RPMB access.
+# Replaces vendor storageproxyd which requires SystemSuspend (wakelock) binder
+# service unavailable in recovery. Must start before keymint.
+service recovery_storageproxyd /system/bin/recovery_storageproxyd \
+        -d /dev/trusty-ipc-dev0 -r /dev/sg1 -p /tmp/ss
+    user root
+    group root
+    disabled
+    seclabel u:r:recovery:s0
+
+# Trusty TEE KeyMint HAL service (provides IKeyMintDevice/default for metadata decryption).
+# Binary from stock vendor partition - runs in recovery context.
+# --- Rust variant (Pixel 8/9 - Zuma/Zumapro) ---
+service vendor.keymint.rust-trusty /vendor/bin/hw/android.hardware.security.keymint-service.rust.trusty \
+        --dev /dev/trusty-ipc-dev0
+    class early_hal
+    user root
+    group root drmrpc
+    disabled
+    oneshot
+    seclabel u:r:recovery:s0
+
+# --- C++ variant (Pixel 7 - GS201) ---
+service vendor.keymint-trusty /vendor/bin/hw/android.hardware.security.keymint-service.trusty \
+        --dev /dev/trusty-ipc-dev0
+    class early_hal
+    user root
+    group root drmrpc
+    disabled
+    oneshot
+    seclabel u:r:recovery:s0
+
+# A14-native Weaver HAL - talks to Titan M2 directly via /dev/gsc0 one_pass_call.
+# Replaces citadeld + weaver-service.citadel (no A15 vendor dependencies).
+# Provides IWeaver/default binder service for CE FBE key derivation.
+service recovery_weaver /system/bin/recovery_weaver
+    user root
+    group root
+    disabled
+    oneshot
+    seclabel u:r:recovery:s0

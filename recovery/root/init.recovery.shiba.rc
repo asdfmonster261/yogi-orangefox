@@ -1,0 +1,4 @@
+# init.recovery.shiba.rc — Pixel 8 (shiba) stub.
+# Loaded by init when ro.hardware=shiba. All actual init code is in init.recovery.zuma.rc.
+import /init.recovery.pixel_common.rc
+

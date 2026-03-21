@@ -1,0 +1,11 @@
+cc_binary {
+    name: "ramdisk_snapshot",
+    srcs: ["ramdisk_snapshot.c"],
+    recovery: true,
+    static_executable: true,
+    cflags: [
+        "-Wall",
+        "-Werror",
+        "-O2",
+    ],
+}

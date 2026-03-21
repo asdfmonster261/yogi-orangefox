@@ -1,0 +1,12 @@
+# vendor.prop — Vendor properties for Zuma SoC recovery.
+# Encryption config is shared across all Zuma Pixel devices.
+
+# Encryption — FBE with wrappedkey_v0 + metadata via Trusty KeyMint
+ro.crypto.volume.filenames_mode=aes-256-cts:v2
+ro.crypto.allow_encrypt_override=true
+ro.crypto.dm_default_key.options_format.version=2
+ro.crypto.volume.metadata.method=dm-default-key
+
+# USB — MTP+ADB default configuration
+vendor.usb.use_ffs_mtp=0
+persist.sys.usb.config=mtp,adb

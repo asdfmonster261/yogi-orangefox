@@ -1,0 +1,3 @@
+# init.recovery.zuma.rc — Zuma SoC (Tensor G3) stub.
+# Loaded by init when ro.hardware=zuma. All actual init code is in init.recovery.pixel_common.rc.
+import /init.recovery.pixel_common.rc

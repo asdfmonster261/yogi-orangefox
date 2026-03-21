@@ -1,0 +1,8 @@
+# init.recovery.cheetah.rc — Pixel 7 Pro (cheetah) stub.
+# Loaded by init when ro.hardware=cheetah. All actual init code is in init.recovery.pixel_common.rc.
+# Cheetah has 1440x3120 display — DOF_SCREEN_H adjusts UI scaling.
+
+on early-init
+    setprop DOF_SCREEN_H 2400
+
+import /init.recovery.pixel_common.rc
