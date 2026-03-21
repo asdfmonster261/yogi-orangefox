@@ -21,9 +21,6 @@
 #   5. Magisk binary extraction and link creation
 #
 
-# =========================================================================
-# A/B slot detection - sets suffix/unsuffix/slot/unslot globals
-# =========================================================================
 slot_detect() {
     suffix=$(getprop ro.boot.slot_suffix)
     if [ -z "$suffix" ]; then
@@ -43,11 +40,6 @@ slot_detect() {
     esac
 }
 
-# =========================================================================
-# Module loading - load touch/haptics .ko modules from vendor_dlkm partition.
-# Strategy: try current slot -> opposite slot -> fallback /system/modules_touch
-# Uses lptools_new to map logical partitions if block device is missing.
-# =========================================================================
 modules_touch_install() {
     mkdir -p /dev/modules_inject/vendor_dlkm_a /dev/modules_inject/vendor_dlkm_b
 
@@ -143,9 +135,6 @@ modules_touch_install() {
     fi
 }
 
-# =========================================================================
-# Fix error 7: remove stale OTA metadata from /metadata/ota
-# =========================================================================
 fix_kerror7() {
     if ! mountpoint -q /metadata ; then
         mount /metadata
@@ -156,9 +145,6 @@ fix_kerror7() {
     umount /metadata
 }
 
-# =========================================================================
-# Magisk: create zip links in OrangeFox file manager directories
-# =========================================================================
 magisk_link_to_OF_FILES() {
     Magisk_zip="$1"
     mkdir -p /FFiles/OF_Magisk/ /sdcard/Fox/FoxFiles
@@ -187,9 +173,6 @@ magisk_on_data_media(){
     done
 }
 
-# =========================================================================
-# Magisk: extract magiskboot binary from Magisk zip for reflash_twrp.sh
-# =========================================================================
 unzip_magiskboot_binary() {
     mkdir -p /tmp/magisk_unzip
     cd /tmp/magisk_unzip || return
@@ -202,9 +185,6 @@ unzip_magiskboot_binary() {
     rm -rf /tmp/magisk_unzip
 }
 
-# =========================================================================
-# LGZ: Decompress zip archives whose contents were LGZ-compressed at build
-# =========================================================================
 lgz_decompress_zips() {
     local manifest="/lgz_zip_manifest.txt"
     [ -f "$manifest" ] || return 0
@@ -226,8 +206,6 @@ lgz_decompress_zips() {
                     mv -f "${f}.dec" "$f"
                 fi
             done
-
-            # Repack with store mode (fast, contents are already uncompressed)
             rm -f "${zippath}.tmp"
             (cd "$tmpdir" && zip -0 -r -q "${zippath}.tmp" .) 2>/dev/null
 
@@ -244,50 +222,25 @@ lgz_decompress_zips() {
 find_magisk_zip() {
     local dir="$1"
     local file
-    
-    # Перебираем все файлы, подходящие под маску в указанной директории
     for file in "${dir}"/Magisk-*.zip; do
-        # Проверяем, существует ли реально такой файл 
-        # (защита от случая, когда файлов нет, и оболочка возвращает саму маску как строку)
         if [ -f "$file" ]; then
             echo "$file"
-            return 0 # Прерываем поиск, возвращаем первый найденный файл
+            return 0
         fi
     done
     
-    # Если ничего не нашли, функция просто завершится, вернув пустоту
 }
-
-# =========================================================================
-# Main execution block
-# =========================================================================
 
 TARGET_MAGISK_ZIP=$(find_magisk_zip /system/bin)
 
 setenforce 0
 LOGF="/tmp/recovery.log"
 chmod 777 /system/bin/*
-
-# Decompress LGZ-packed zip contents before anything uses them.
-# LGZ compresses zip payloads at build time to reduce ramdisk size.
 lgz_decompress_zips
-
-# Detect device codename from kernel-set ro.hardware property.
-# This determines which modules to load, which props to set, etc.
 device_code=$(getprop ro.hardware)
-
-# Detect A/B slot: sets $suffix (_a/_b), $unsuffix, $slot (0/1), $unslot
 slot_detect
 
-# =========================================================================
-# Device detection - set model and module list per ro.hardware
-# =========================================================================
-# DOF_SCREEN_H is set in init.recovery.{device}.rc (not here), because
-# data.cpp reads it during DataManager::SetDefaultValues() which runs
-# BEFORE runatboot.sh. By the time we get here the UI is already initialized.
-
 case "$device_code" in
-    # === gs201 - Tensor G2 (Pixel 7 family) ===
     panther)
         # Pixel 7 - Focaltech touch
         modules_touch="stmvl53l1 lwis cl_dsp-core cs40l26-core cs40l26-i2c goodixfp heatmap goog_touch_interface focal_touch fps_touch_handler"
@@ -335,24 +288,11 @@ case "$device_code" in
         ;;
 esac
 
-# DOF_SCREEN_H is set in init.recovery.{device}.rc (not here), because
-# data.cpp reads it during DataManager::SetDefaultValues() which runs
-# BEFORE runatboot.sh. By the time we get here the UI is already initialized.
-
 if [ -n "$modules_touch" ]; then
-    # =====================================================================
-    # Vendor firmware copy - CS40L26 haptics firmware from vendor partition.
-    # Uses same slot fallback logic as module loading: try current slot first,
-    # then opposite slot, then by-name (unslotted) as last resort.
-    # =====================================================================
     if [ ! -f /vendor/firmware/cs40l26.wmfw ]; then
         echo "I:vendor_fw: Copying haptics firmware from vendor partition..." >> "$LOGF"
         tmp_mnt="/tmp/vendor_fw_mnt"
         mkdir -p "$tmp_mnt" /vendor/firmware
-
-        # try_mount_vendor_fw: try to mount vendor partition and copy firmware.
-        # Uses same lptools_new mapping logic as modules_touch_install try_slot
-        # for unmapped logical partitions (opposite slot is not mapped by init).
         try_mount_vendor_fw() {
             local blk="$1"
             local slot_name="$2"
@@ -369,8 +309,6 @@ if [ -n "$modules_touch" ]; then
             if mount -r "$blk" "$tmp_mnt" 2>>"$LOGF"; then
                 if [ -f "$tmp_mnt/firmware/cs40l26.wmfw" ]; then
                     cp "$tmp_mnt"/firmware/* /vendor/firmware/ 2>>"$LOGF"
-                    # cp "$tmp_mnt"/firmware/cs40l26* /vendor/firmware/ 2>>"$LOGF"
-                    # cp "$tmp_mnt"/firmware/cl_dsp* /vendor/firmware/ 2>>"$LOGF"
                     echo "I:vendor_fw: Firmware copied from $blk" >> "$LOGF"
                     umount "$tmp_mnt" 2>/dev/null
                     return 0
@@ -383,13 +321,11 @@ if [ -n "$modules_touch" ]; then
             return 1
         }
 
-        # Try current slot -> opposite slot -> unslotted by-name
         if try_mount_vendor_fw "/dev/block/mapper/vendor${suffix}" "$suffix" "$slot"; then
             : # success
         elif try_mount_vendor_fw "/dev/block/mapper/vendor${unsuffix}" "$unsuffix" "$unslot"; then
             : # success from opposite slot
         elif [ -b /dev/block/by-name/vendor ] && mount -r /dev/block/by-name/vendor "$tmp_mnt" 2>>"$LOGF"; then
-            # Fallback: unslotted vendor (shouldn't exist on A/B, but just in case)
             cp "$tmp_mnt"/firmware/cs40l26* /vendor/firmware/ 2>>"$LOGF"
             cp "$tmp_mnt"/firmware/cl_dsp* /vendor/firmware/ 2>>"$LOGF"
             umount "$tmp_mnt" 2>/dev/null
@@ -402,14 +338,8 @@ if [ -n "$modules_touch" ]; then
         ls /vendor/firmware/ >> "$LOGF" 2>&1
     fi
 
-    # Load touch/haptics kernel modules from vendor_dlkm partition
     modules_touch_install
 
-    # Disable runtime PM autosuspend on CS40L26 to keep haptic chip awake for FF vibration.
-    # HSI2C bus differs per SoC family:
-    #   gs201 (G2): 10d50000.hsi2c, i2c-0, address 0x43
-    #   zuma  (G3): 10c80000.hsi2c, i2c-0, address 0x43
-    #   zumapro (G4): TBD
     soc_family=$(getprop ro.recovery.soc_family)
     case "$soc_family" in
         gs201)
@@ -428,24 +358,18 @@ if [ -n "$modules_touch" ]; then
     fi
 fi
 
-# Log torch controller availability (LM3644 flash LED via I2C, controlled by torch_ctl.sh)
 if [ -c "/dev/lwis-flash-lm3644" ]; then
     echo "I:torch: /dev/lwis-flash-lm3644 available, LM3644 I2C torch ready" >> "$LOGF"
 else
     echo "W:torch: /dev/lwis-flash-lm3644 not found" >> "$LOGF"
 fi
 
-# Clean up stale OTA metadata that can cause boot loops (error 7)
 fix_kerror7
-
-# Create Magisk zip links in OrangeFox file manager locations
 if [ -n "$TARGET_MAGISK_ZIP" ]; then
     magisk_link_to_OF_FILES "$TARGET_MAGISK_ZIP"
 else
     echo "W:magisk: No Magisk zip found in /system/bin, skipping copy and link creation" >> "$LOGF"
 fi
-
-# Extract magiskboot binary from Magisk zip for reflash_twrp.sh
 unzip_magiskboot_binary
 
 exit 0

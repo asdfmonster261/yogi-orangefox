@@ -18,7 +18,6 @@
 
 TARGET=/dev/thermal_cpu
 
-# Remove stale symlink from previous boot (tmpfs /dev is fresh each boot, but be safe)
 rm -f "$TARGET"
 
 for z in /sys/class/thermal/thermal_zone*; do
@@ -32,5 +31,4 @@ for z in /sys/class/thermal/thermal_zone*; do
     esac
 done
 
-# No known CPU name found - fall back to zone0 (TWRP default behaviour preserved)
 ln -sf /sys/class/thermal/thermal_zone0/temp "$TARGET"
