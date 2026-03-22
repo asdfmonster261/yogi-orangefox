@@ -51,7 +51,7 @@ AB_OTA_PARTITIONS += \
     pbl \
     pvmfw \
     tzsw \
-    idfw
+    ldfw
 
 # Architecture
 TARGET_ARCH := arm64
