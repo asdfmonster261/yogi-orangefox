@@ -22,13 +22,16 @@ on early-boot
     mkdir /config/usb_gadget/g1/functions/mass_storage.0 0755 root root
     mkdir /config/usb_gadget/g1/functions/ffs.mtp
     mkdir /config/usb_gadget/g1/functions/ffs.ptp
+    mkdir /config/usb_gadget/g1/functions/ffs.fastboot
     mkdir /dev/usb-ffs 0775 root root
     mkdir /dev/usb-ffs/adb 0770 root root
     mkdir /dev/usb-ffs/mtp 0770 mtp mtp
     mkdir /dev/usb-ffs/ptp 0770 mtp mtp
+    mkdir /dev/usb-ffs/fastboot 0770 system system
     mount functionfs adb /dev/usb-ffs/adb rmode=0770,fmode=0660,uid=2000,gid=2000,no_disconnect=1
     mount functionfs mtp /dev/usb-ffs/mtp rmode=0770,fmode=0660,uid=1024,gid=1024,no_disconnect=1
     mount functionfs ptp /dev/usb-ffs/ptp rmode=0770,fmode=0660,uid=1024,gid=1024,no_disconnect=1
+    mount functionfs fastboot /dev/usb-ffs/fastboot rmode=0770,fmode=0660,uid=1000,gid=1000,no_disconnect=1
     setprop sys.usb.mtp.device_type 3
     setprop sys.usb.mtp.batchcancel true
     symlink /config/usb_gadget/g1/configs/b.1 /config/usb_gadget/g1/os_desc/b.1
@@ -302,11 +305,19 @@ on property:ro.boot.usbcontroller=*
 on property:sys.usb.config=none && property:sys.usb.configfs=1
     write /config/usb_gadget/g1/UDC ""
     stop adbd
+    stop fastbootd
     setprop sys.usb.ffs.ready 0
     rm /config/usb_gadget/g1/configs/b.1/f1
     rm /config/usb_gadget/g1/configs/b.1/f2
     rm /config/usb_gadget/g1/configs/b.1/f3
     setprop sys.usb.state ${sys.usb.config}
+
+# Immediately acknowledge fastboot mode so TWRP/OrangeFox does not timeout while
+# fastbootd initializes (BootControl HAL + USB FFS endpoint setup, ~500ms).
+# The actual USB gadget hardware (UDC activation) is handled by the compound
+# trigger in stock init.rc once fastbootd sets sys.usb.ffs.ready=1.
+on property:sys.usb.config=fastboot && property:sys.usb.configfs=1
+    setprop sys.usb.state fastboot
 
 
 on boot
