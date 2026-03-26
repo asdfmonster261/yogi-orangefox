@@ -40,6 +40,78 @@ apply_prop_file() {
     done < "$file"
 }
 
+# Patches /system/etc/twrp.flags before TWRP reads it: Process_Fstab() runs
+# before runatboot.sh. Adds the OTG block device as the next sdX letter after
+# the last internal UFS disk, and drops by-name entries absent on this device.
+#
+# Safety: if ueventd coldboot is not done yet (by-name empty after wait),
+# the prune step is skipped entirely - never prunes on an empty /dev/block.
+fix_twrp_flags() {
+    local flags_file="/system/etc/twrp.flags"
+    [ -f "$flags_file" ] || return
+    local LOG="/tmp/recovery.log"
+    local i last_blk last_letter next_letter tmp line blk part
+
+    # Wait up to 3 seconds for ueventd to create /dev/block/sd? nodes.
+    # runatinit runs at early-init; ueventd coldboot is concurrent and usually
+    # completes within 1-2 seconds. The loop exits immediately on first hit.
+    i=0
+    while [ "$i" -lt 3 ]; do
+        ls /dev/block/sd? >/dev/null 2>&1 && break
+        sleep 1
+        i=$((i + 1))
+    done
+
+    # --- 1. USB OTG device auto-detection ---
+    # UFS internal disks: sda, sdb, sdc, ... OTG gets the next letter.
+    last_blk=$(ls /dev/block/sd? 2>/dev/null | sort | tail -1)
+    if [ -n "$last_blk" ]; then
+        last_letter="${last_blk##*sd}"
+        next_letter=$(printf '%s' "$last_letter" | tr 'abcdefghijklmnopqrstuvwxy' 'bcdefghijklmnopqrstuvwxyz')
+        if [ "$next_letter" != "$last_letter" ]; then
+            sed -i "/usb_otg/s|/dev/block/sd[a-z][0-9]*|/dev/block/sd${next_letter}1|" "$flags_file"
+            echo "I:twrp.flags: USB OTG -> /dev/block/sd${next_letter}1 (last internal: ${last_blk##*/})" >> "$LOG"
+        fi
+    else
+        echo "W:twrp.flags: No /dev/block/sd? after wait, USB OTG entry unchanged" >> "$LOG"
+    fi
+
+    # --- 2. Prune by-name entries absent on this device ---
+    # Safety guard: skip prune if by-name is not populated yet.
+    if ! ls /dev/block/platform/*/by-name/ >/dev/null 2>&1; then
+        echo "W:twrp.flags: by-name not ready, skipping partition prune" >> "$LOG"
+        return
+    fi
+
+    tmp="${flags_file}.tmp"
+    : > "$tmp"
+    while IFS= read -r line; do
+        case "$line" in
+            \#*|"") printf '%s\n' "$line" >> "$tmp"; continue ;;
+        esac
+        # awk: portable field extraction; busybox awk is always available in recovery
+        blk=$(printf '%s\n' "$line" | awk '{print $3}')
+        case "$blk" in
+            /dev/block/platform/*/by-name/*)
+                part="${blk##*/}"
+                # A/B slotselect entries use the base name (e.g. "boot") in twrp.flags,
+                # but by-name contains only suffixed symlinks (boot_a / boot_b).
+                # Keep the entry if the base name OR the _a suffixed name exists.
+                if ls /dev/block/platform/*/by-name/"$part" >/dev/null 2>&1 ||
+                   ls /dev/block/platform/*/by-name/"${part}_a" >/dev/null 2>&1; then
+                    printf '%s\n' "$line" >> "$tmp"
+                else
+                    echo "I:twrp.flags: Pruned absent partition: $part" >> "$LOG"
+                fi
+                ;;
+            *)
+                printf '%s\n' "$line" >> "$tmp"
+                ;;
+        esac
+    done < "$flags_file"
+    mv -f "$tmp" "$flags_file"
+}
+
 setenforce 0
 
 device_code=$(getprop ro.hardware)
@@ -57,6 +129,7 @@ apply_prop_file "${PROPS_DIR}/${device_code}.prop"
 if [ "$family" = "gs201" ] && [ -f /system/etc/twrp_gs201.flags ]; then
     cp -f /system/etc/twrp_gs201.flags /system/etc/twrp.flags
 fi
+fix_twrp_flags
 lgz_decompress_zips() {
     local manifest="/lgz_zip_manifest.txt"
     [ -f "$manifest" ] || return 0
@@ -92,9 +165,11 @@ lgz_decompress_zips() {
 }
 
 unzip_magiskboot_binary() {
+    local zip="$1"
+    [ -f "$zip" ] || return
     mkdir -p /tmp/magisk_unzip
     cd /tmp/magisk_unzip || return
-    unzip -q "$TARGET_MAGISK_ZIP"
+    unzip -q "$zip"
     cp lib/arm64-v8a/libmagiskboot.so /system/bin/magiskboot_29
     cp lib/arm64-v8a/libmagiskboot.so /system/bin/magiskboot
     cp lib/arm64-v8a/libbusybox.so /system/bin/busybox
@@ -108,7 +183,15 @@ unzip_magiskboot_binary() {
 }
 
 lgz_decompress_zips
-unzip_magiskboot_binary
+TARGET_MAGISK_ZIP=""
+for _f in /system/bin/Magisk-*.zip; do
+    [ -f "$_f" ] && TARGET_MAGISK_ZIP="$_f" && break
+done
+if [ -n "$TARGET_MAGISK_ZIP" ]; then
+    unzip_magiskboot_binary "$TARGET_MAGISK_ZIP"
+else
+    echo "W:magisk: No Magisk zip found in /system/bin, skipping binary extraction" >> /tmp/recovery.log
+fi
 
 setprop servicemanager.ready true
 resetprop servicemanager.ready true
