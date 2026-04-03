@@ -3,10 +3,11 @@
 # build.sh — OrangeFox Recovery build script for all Tensor Pixel devices.
 #
 # Usage:
-#   ./build.sh [--family gs201|zuma|zumapro|gs101|laguna] [--notrm] [-j N] [--name TAG] [--patch N]
+#   ./build.sh [--family gs201|zuma|zumapro|gs101|laguna|tangorpro] [--notrm] [-j N] [--name TAG] [--patch N]
 #
 # Options:
-#   --family FAMILY   Set SoC family before lunch (gs201/zuma/zumapro/gs101).
+#   --family FAMILY   Set SoC family before lunch (gs201/zuma/zumapro/gs101/laguna/tangorpro).
+#                     tangorpro = Pixel Tablet (gs201 SoC + landscape_hdpi theme, TW_ROTATION=270).
 #                     If omitted, vendorsetup.sh interactive menu is used.
 #   --notrm           Don't clean out/target/product/pixels before build.
 #   -j N              Parallelism for make (default: $(nproc)).
@@ -37,13 +38,13 @@ while [[ $# -gt 0 ]]; do
             shift
             FAMILY="${1:-}"
             if [[ -z "$FAMILY" ]]; then
-                echo "ERROR: --family requires an argument (gs201|zuma|zumapro|gs101|laguna)"
+                echo "ERROR: --family requires an argument (gs201|zuma|zumapro|gs101|laguna|tangorpro)"
                 exit 1
             fi
             case "$FAMILY" in
-                gs201|zuma|zumapro|gs101|laguna) ;;
+                gs201|zuma|zumapro|gs101|laguna|tangorpro) ;;
                 *)
-                    echo "ERROR: unknown family '$FAMILY'. Valid: gs201, zuma, zumapro, gs101, laguna"
+                    echo "ERROR: unknown family '$FAMILY'. Valid: gs201, zuma, zumapro, gs101, laguna, tangorpro"
                     exit 1
                     ;;
             esac
@@ -138,7 +139,7 @@ echo "[build] DEVICE_BUILD_FLAG=${DEVICE_BUILD_FLAG:-<not set>}"
 
 BUILD_TARGETS="adbd vendorbootimage"
 
-if [[ "${DEVICE_BUILD_FLAG:-}" == "gs201" || "${DEVICE_BUILD_FLAG:-}" == "gs101" ]]; then
+if [[ "${DEVICE_BUILD_FLAG:-}" == "gs201" || "${DEVICE_BUILD_FLAG:-}" == "gs101" || "${DEVICE_BUILD_FLAG:-}" == "tangorpro" ]]; then
     if [[ "${DEVICE_BUILD_FLAG:-}" == "gs101" ]]; then
         export VENDOR_BOOT_PATCH_STOCK=true
         echo "[build] gs101: stock vendor_boot patch mode (VENDOR_BOOT_PATCH_STOCK=true)"

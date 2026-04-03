@@ -192,13 +192,11 @@ lgz_compress_zip_contents() {
     echo "# Zips whose contents were LGZ-compressed at build time" >> "$manifest"
     echo "# Generated: $(date -u)" >> "$manifest"
 
-
     while IFS= read -r zipfile; do
         local zip_size
         zip_size=$(stat -c%s "$zipfile" 2>/dev/null || echo 0)
         echo "    [LGZ-ZIP] Found zip: ${zipfile#$ramdisk_root/} (${zip_size} bytes)"
         if [ "$zip_size" -lt "$min_zip_size" ]; then
-            # echo "    [LGZ-ZIP]   SKIP (too small)"
             continue
         fi
 
@@ -214,8 +212,28 @@ lgz_compress_zip_contents() {
             continue
         fi
 
-        local compressed_any=0
+        local lgz_compressed=0
+        local patched_any=0
         local inner_saved=0
+
+        local zip_basename
+        zip_basename="$(basename "$zipfile")"
+        if [ "$zip_basename" = "DFENEO.zip" ]; then
+            local neo_config
+            neo_config=$(find "$tmpdir" -name "NEO.config" -type f | head -1)
+            if [ -n "$neo_config" ]; then
+                local platform="$PLATFORM"
+                if grep -q '^FSTAB_EXTENSION=' "$neo_config"; then
+                    sed -i "s/^FSTAB_EXTENSION=.*/FSTAB_EXTENSION=$platform/" "$neo_config"
+                    echo "    [LGZ-ZIP]   DFE: patched NEO.config FSTAB_EXTENSION=$platform"
+                    patched_any=1
+                else
+                    echo "    [LGZ-ZIP]   DFE: WARNING: FSTAB_EXTENSION not found in NEO.config"
+                fi
+            else
+                echo "    [LGZ-ZIP]   DFE: WARNING: NEO.config not found inside DFE.zip"
+            fi
+        fi
 
         while IFS= read -r inner_file; do
             local inner_size
@@ -228,7 +246,7 @@ lgz_compress_zip_contents() {
                 comp_size=$(stat -c%s "$tmp_comp" 2>/dev/null || echo 0)
                 if [ "$comp_size" -gt 0 ] && [ "$comp_size" -lt "$inner_size" ]; then
                     mv -f "$tmp_comp" "$inner_file"
-                    compressed_any=1
+                    lgz_compressed=1
                     inner_saved=$((inner_saved + inner_size - comp_size))
                 else
                     rm -f "$tmp_comp"
@@ -238,45 +256,26 @@ lgz_compress_zip_contents() {
             fi
         done < <(find "$tmpdir" -type f)
 
-        # --- DFE.zip: patch NEO.config FSTAB_EXTENSION to match build platform ---
-        local zip_basename
-        zip_basename="$(basename "$zipfile")"
-        if [ "$zip_basename" = "DFENEO.zip" ]; then
-            local neo_config
-            neo_config=$(find "$tmpdir" -name "NEO.config" -type f | head -1)
-            if [ -n "$neo_config" ]; then
-                local platform="$PLATFORM"
-                if grep -q '^FSTAB_EXTENSION=' "$neo_config"; then
-                    sed -i "s/^FSTAB_EXTENSION=.*/FSTAB_EXTENSION=$platform/" "$neo_config"
-                    echo "    [LGZ-ZIP]   DFE: patched NEO.config FSTAB_EXTENSION=$platform"
-                    compressed_any=1
-                else
-                    echo "    [LGZ-ZIP]   DFE: WARNING: FSTAB_EXTENSION not found in NEO.config"
-                fi
-            else
-                echo "    [LGZ-ZIP]   DFE: WARNING: NEO.config not found inside DFE.zip"
-            fi
-        fi
-
-        if [ "$compressed_any" -eq 1 ]; then
-            # Repack as store-mode zip (LZMA2 data doesn't benefit from deflate)
+        if [ "$lgz_compressed" -eq 1 ] || [ "$patched_any" -eq 1 ]; then
             local new_zip="${zipfile}.lgz_new"
             pushd "$tmpdir" > /dev/null
-            zip -0 -r -q "$new_zip" . 2>/dev/null
+            if [ "$lgz_compressed" -eq 1 ]; then
+                zip -0 -r -q "$new_zip" . 2>/dev/null
+            else
+                zip -9 -r -q "$new_zip" . 2>/dev/null
+            fi
             popd > /dev/null
 
             local new_size
             new_size=$(stat -c%s "$new_zip" 2>/dev/null || echo 0)
 
-            if [ "$new_size" -gt 0 ] && [ "$new_size" -lt "$zip_size" ]; then
+            if [ "$new_size" -gt 0 ] && { [ "$new_size" -lt "$zip_size" ] || [ "$patched_any" -eq 1 ]; }; then
                 local ratio=$((new_size * 100 / zip_size))
                 echo "    [LGZ-ZIP]   OK: $relpath ($zip_size -> $new_size, ${ratio}%)"
                 
-                # Тупо и жестко: удаляем оригинал и копируем сжатый
                 rm -f "$zipfile"
                 cp -f "$new_zip" "$zipfile"
                 
-                # Проверяем, применился ли размер на диск
                 local verify_size=$(stat -c%s "$zipfile" 2>/dev/null || echo 0)
                 if [ "$verify_size" != "$new_size" ]; then
                     echo "    [LGZ-ZIP]   WTF ERROR: File did not overwrite! Expected $new_size, got $verify_size"
@@ -285,11 +284,10 @@ lgz_compress_zip_contents() {
                 echo "/$relpath" >> "$manifest"
                 total_saved=$((total_saved + zip_size - new_size))
                 zip_count=$((zip_count + 1))
-                rm -f "$new_zip"
             else
-                echo "    [LGZ-ZIP]   SKIP (no gain): $relpath"
-                rm -f "$new_zip"
+                echo "    [LGZ-ZIP]   SKIP (no gain & no patch): $relpath"
             fi
+            rm -f "$new_zip"
         else
             echo "    [LGZ-ZIP]   SKIP (nothing compressible): $relpath"
         fi

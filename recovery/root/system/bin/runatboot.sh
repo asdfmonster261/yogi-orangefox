@@ -271,7 +271,7 @@ case "$device_code" in
         ;;
     tangorpro)
         # Pixel Tablet - Novatek NVT SPI touch (10.95" LCD, no camera ToF, no under-display FP)
-        modules_touch="heatmap goog_touch_interface nvt_touch touch_offload"
+        modules_touch="heatmap goog_touch_interface touch_bus_negotiator touch_offload goog_usi_stylus nvt_touch fps_touch_handler"
         ;;
     # === zuma - Tensor G3 (Pixel 8 family) ===
     shiba)
@@ -322,54 +322,59 @@ case "$device_code" in
 esac
 
 if [ -n "$modules_touch" ]; then
-    if [ ! -f /vendor/firmware/cs40l26.wmfw ]; then
-        echo "I:vendor_fw: Copying haptics firmware from vendor partition..." >> "$LOGF"
-        tmp_mnt="/tmp/vendor_fw_mnt"
-        mkdir -p "$tmp_mnt" /vendor/firmware
-        try_mount_vendor_fw() {
-            local blk="$1"
-            local slot_name="$2"
-            local slot_num="$3"
+    echo "I:vendor_fw: Copying haptics firmware from vendor partition..." >> "$LOGF"
+    tmp_mnt="/tmp/vendor_fw_mnt"
+    mkdir -p "$tmp_mnt" /vendor/firmware
+    try_mount_vendor_fw() {
+        local blk="$1"
+        local slot_name="$2"
+        local slot_num="$3"
 
-            if [ ! -b "$blk" ]; then
-                echo "W:vendor_fw: $blk not found, trying to map..." >> "$LOGF"
-                if ! lptools_new --slot "$slot_num" --suffix "$slot_name" --map "vendor$slot_name" ; then
-                    echo "E:vendor_fw: Failed to map vendor$slot_name" >> "$LOGF"
-                    return 1
-                fi
+        if [ ! -b "$blk" ]; then
+            echo "W:vendor_fw: $blk not found, trying to map..." >> "$LOGF"
+            if ! lptools_new --slot "$slot_num" --suffix "$slot_name" --map "vendor$slot_name" ; then
+                echo "E:vendor_fw: Failed to map vendor$slot_name" >> "$LOGF"
+                return 1
             fi
-
-            if mount -r "$blk" "$tmp_mnt" 2>>"$LOGF"; then
-                if [ -f "$tmp_mnt/firmware/cs40l26.wmfw" ]; then
-                    cp "$tmp_mnt"/firmware/* /vendor/firmware/ 2>>"$LOGF"
-                    echo "I:vendor_fw: Firmware copied from $blk" >> "$LOGF"
-                    umount "$tmp_mnt" 2>/dev/null
-                    return 0
-                fi
-                umount "$tmp_mnt" 2>/dev/null
-                echo "W:vendor_fw: No cs40l26 firmware in $blk" >> "$LOGF"
-            else
-                echo "W:vendor_fw: Cannot mount $blk" >> "$LOGF"
-            fi
-            return 1
-        }
-
-        if try_mount_vendor_fw "/dev/block/mapper/vendor${suffix}" "$suffix" "$slot"; then
-            : # success
-        elif try_mount_vendor_fw "/dev/block/mapper/vendor${unsuffix}" "$unsuffix" "$unslot"; then
-            : # success from opposite slot
-        elif [ -b /dev/block/by-name/vendor ] && mount -r /dev/block/by-name/vendor "$tmp_mnt" 2>>"$LOGF"; then
-            cp "$tmp_mnt"/firmware/cs40l26* /vendor/firmware/ 2>>"$LOGF"
-            cp "$tmp_mnt"/firmware/cl_dsp* /vendor/firmware/ 2>>"$LOGF"
-            umount "$tmp_mnt" 2>/dev/null
-            echo "I:vendor_fw: Firmware copied from /dev/block/by-name/vendor" >> "$LOGF"
-        else
-            echo "E:vendor_fw: Failed to copy firmware from any vendor slot" >> "$LOGF"
         fi
 
-        rmdir "$tmp_mnt" 2>/dev/null
-        ls /vendor/firmware/ >> "$LOGF" 2>&1
+        if mount -r "$blk" "$tmp_mnt" 2>>"$LOGF"; then
+            local _copied=0
+            if [ -f "$tmp_mnt/firmware/cs40l26.wmfw" ]; then
+                cp "$tmp_mnt"/firmware/* /vendor/firmware/ 2>>"$LOGF"
+                echo "I:vendor_fw: cs40l26 firmware copied from $blk" >> "$LOGF"
+                _copied=1
+            fi
+            if [ "$device_code" = "tangorpro" ] && [ -f "$tmp_mnt/firmware/novatek_ts_fw.bin" ]; then
+                mkdir -p /lib/firmware
+                cp "$tmp_mnt"/firmware/novatek_ts_fw*.bin /lib/firmware/ 2>>"$LOGF"
+                echo "I:nvt_fw: NVT touch firmware copied from $blk" >> "$LOGF"
+                _copied=1
+            fi
+            umount "$tmp_mnt" 2>/dev/null
+            [ "$_copied" = "1" ] && return 0
+            echo "W:vendor_fw: No required firmware in $blk" >> "$LOGF"
+        else
+            echo "W:vendor_fw: Cannot mount $blk" >> "$LOGF"
+        fi
+        return 1
+    }
+
+    if try_mount_vendor_fw "/dev/block/mapper/vendor${suffix}" "$suffix" "$slot"; then
+        : # success
+    elif try_mount_vendor_fw "/dev/block/mapper/vendor${unsuffix}" "$unsuffix" "$unslot"; then
+        : # success from opposite slot
+    elif [ -b /dev/block/by-name/vendor ] && mount -r /dev/block/by-name/vendor "$tmp_mnt" 2>>"$LOGF"; then
+        cp "$tmp_mnt"/firmware/cs40l26* /vendor/firmware/ 2>>"$LOGF"
+        cp "$tmp_mnt"/firmware/cl_dsp* /vendor/firmware/ 2>>"$LOGF"
+        umount "$tmp_mnt" 2>/dev/null
+        echo "I:vendor_fw: Firmware copied from /dev/block/by-name/vendor" >> "$LOGF"
+    else
+        echo "E:vendor_fw: Failed to copy firmware from any vendor slot" >> "$LOGF"
     fi
+
+    rmdir "$tmp_mnt" 2>/dev/null
+    ls /vendor/firmware/ >> "$LOGF" 2>&1
 
     modules_touch_install
 
