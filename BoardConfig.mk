@@ -127,12 +127,10 @@ VENDOR_CMDLINE := "dyndbg=\"func alloc_contig_dump_pages +p\" \
         log_buf_len=1024K bootconfig"
 else ifeq ($(DEVICE_BUILD_FLAG),laguna)
 VENDOR_CMDLINE := "dyndbg=\"func alloc_contig_dump_pages +p\" \
-        earlycon=exynos4210,0x10870000 \
-        console=ttySAC0,115200 \
-        androidboot.console=ttySAC0 printk.devkmsg=on \
-        cma_sysfs.experimental=Y \
         cgroup.memory=nokmem \
         rcupdate.rcu_expedited=1 \
+		aoc_core.aoc_enable_gsa_boot=1 \
+		android_arch_task_struct_size=512 \
         rcu_nocbs=all \
         rcutree.enable_rcu_lazy \
         swiotlb=noforce \
@@ -142,7 +140,8 @@ VENDOR_CMDLINE := "dyndbg=\"func alloc_contig_dump_pages +p\" \
         at24.write_timeout=100 \
         fips140.load_sequential=1 \
         vh_sched.load_sequential=1 \
-        init_on_alloc=0 init_on_free=1 \
+        init_on_alloc=0 \
+		init_on_free=1 \
         pcie_port_pm=off \
         log_buf_len=1024K bootconfig"
 else ifeq ($(DEVICE_BUILD_FLAG),gs101)
