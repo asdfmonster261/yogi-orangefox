@@ -10,12 +10,14 @@
 #   zuma    (Tensor G3): shiba (Pixel 8), husky (Pixel 8 Pro), akita (Pixel 8a)
 #   zumapro (Tensor G4): tokay (Pixel 9), komodo (Pixel 9 Pro XL), caiman (Pixel 9 Pro), tegu (Pixel 9a)
 #   laguna  (Tensor G5): blazer (Pixel 10 Pro), mustang (Pixel 10 Pro XL), frankel (Pixel 10)
+#   malibu  (Tensor G6): yogi (Pixel 11 Pro Fold)
 #
 # Build flag DEVICE_BUILD_FLAG selects the target family:
 #   (default) → zuma (UFS 13200000, earlycon 10A00000)
 #   zumapro   → zumapro (UFS 13200000, earlycon 10870000)
 #   gs201     → gs201 (UFS 14700000, earlycon 10A00000)
 #   laguna    → laguna (UFS 3c400000, earlycon 10870000)
+#   malibu    → malibu (UFS 3c2d0000)
 #
 # Crypto: FBE with wrappedkey_v0 + metadata encryption via Trusty TEE KeyMint
 # Boot: Virtual A/B with vendor_boot, GKI or monolithic kernel
@@ -210,6 +212,9 @@ BOARD_BOOTCONFIG += androidboot.boot_devices=14700000.ufs
 else ifeq ($(DEVICE_BUILD_FLAG),laguna)
 BOARD_BOOTCONFIG := androidboot.usbcontroller=c400000.dwc3
 BOARD_BOOTCONFIG += androidboot.boot_devices=3c400000.ufs
+else ifeq ($(DEVICE_BUILD_FLAG),malibu)
+BOARD_BOOTCONFIG := androidboot.usbcontroller=a210000.dwc3
+BOARD_BOOTCONFIG += androidboot.boot_devices=3c2d0000.ufs
 else
 BOARD_BOOTCONFIG += androidboot.boot_devices=13200000.ufs
 endif
