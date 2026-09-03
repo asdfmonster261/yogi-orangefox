@@ -146,6 +146,8 @@ VENDOR_CMDLINE := "dyndbg=\"func alloc_contig_dump_pages +p\" \
 		init_on_free=1 \
         pcie_port_pm=off \
         log_buf_len=1024K bootconfig"
+else ifeq ($(DEVICE_BUILD_FLAG),malibu)
+VENDOR_CMDLINE := "spmi_smartdv.load_sequential=1 regmap-goog-spmi.load_sequential=1 max77779_pmic.load_sequential=1 max77779_pmic_spmi.load_sequential=1 max77779_pmic_pinctrl.load_sequential=1 samsung_dma_heap.gcma_skip_heaps=gcma_camera_internal dyndbg=\"func alloc_contig_dump_pages +p\" cma_sysfs.experimental=Y init_on_alloc=0 init_on_free=1 rcupdate.rcu_expedited=1 rcu_nocbs=all rcutree.enable_rcu_lazy swiotlb=noforce disable_dma32=on rodata=on sysctl.kernel.sched_pelt_multiplier=4 arm64.nomops aoc_core.aoc_panic_on_ssr_failure=1 aoc_core.aoc_enable_gsa_boot=1 ufs.async_probe=1 vs_drm.async_probe=1 gs_governor_dsulat.async_probe=1 arm64.nosme kasan=off at24.write_timeout=100 log_buf_len=1024K android_arch_task_struct_size=784 bootconfig"
 else ifeq ($(DEVICE_BUILD_FLAG),gs101)
 VENDOR_CMDLINE := "dyndbg=\"func alloc_contig_dump_pages +p\" \\
         earlycon=exynos4210,0x10A00000 \\
