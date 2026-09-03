@@ -181,6 +181,7 @@ case "$device_code" in
     shiba|husky|akita|zuma)          family="zuma" ;;
     tokay|komodo|caiman|tegu|zumapro) family="zumapro" ;;
     blazer|mustang|frankel|rango|deepspace|laguna) family="laguna" ;;
+    yogi|malibu) family="malibu" ;;
     *)                                family="" ;;
 esac
 _log "detected family=$family"
@@ -199,6 +200,10 @@ if [ "$family" = "laguna" ] && [ -f /system/etc/twrp_laguna.flags ]; then
     _log "laguna: cp twrp_laguna.flags -> twrp.flags"
     cp -f /system/etc/twrp_laguna.flags /system/etc/twrp.flags
 fi
+if [ "$family" = "malibu" ] && [ -f /system/etc/twrp_malibu.flags ]; then
+    _log "malibu: cp twrp_malibu.flags -> twrp.flags"
+    cp -f /system/etc/twrp_malibu.flags /system/etc/twrp.flags
+fi
 
 # --- USB controller setup ---
 # Must be set before on init (pixel_common.rc) which uses this property for configfs.
@@ -207,6 +212,10 @@ case "$family" in
     laguna)
         resetprop sys.usb.controller "c400000.dwc3"
         _log "  USB controller: c400000.dwc3 (laguna)"
+        ;;
+    malibu)
+        resetprop sys.usb.controller "a210000.dwc3"
+        _log "  USB controller: a210000.dwc3 (malibu)"
         ;;
     *)
         resetprop sys.usb.controller "11210000.dwc3"
