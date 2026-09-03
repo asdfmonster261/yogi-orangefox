@@ -1,0 +1,35 @@
+# yogi.prop - Pixel 11 Pro Fold (yogi) device identity
+# Applied by runatinit.sh during on early-init.
+
+ro.quick_start.device_id=yogi
+ro.lineage.device=yogi
+ro.crdroid.device=yogi
+ro.product.system.device=yogi
+ro.product.system.model=Pixel 11 Pro Fold
+ro.product.system.name=yogi
+ro.system.build.fingerprint=google/yogi/yogi:17/CD1A.260714.001.A9/15938155:user/release-keys
+ro.build.display.id=CD1A.260714.001.A9
+ro.build.flavor=yogi-eng
+ro.build.product=yogi
+ro.build.description=yogi-user 17 CD1A.260714.001.A9 15938155 release-keys
+ro.display.series=Pixel 11 Pro Fold
+ro.product.vendor.device=yogi
+ro.product.vendor.model=Pixel 11 Pro Fold
+ro.product.vendor.name=yogi
+ro.vendor.build.fingerprint=google/yogi/yogi:17/CD1A.260714.001.A9/15938155:user/release-keys
+ro.product.board=yogi
+ro.product.odm.device=yogi
+ro.product.odm.model=Pixel 11 Pro Fold
+ro.product.odm.name=yogi
+ro.odm.build.fingerprint=google/yogi/yogi:17/CD1A.260714.001.A9/15938155:user/release-keys
+ro.product.product.device=yogi
+ro.product.product.model=Pixel 11 Pro Fold
+ro.product.product.name=yogi
+ro.product.build.fingerprint=google/yogi/yogi:17/CD1A.260714.001.A9/15938155:user/release-keys
+ro.product.system_ext.device=yogi
+ro.product.system_ext.model=Pixel 11 Pro Fold
+ro.product.system_ext.name=yogi
+ro.system_ext.build.fingerprint=google/yogi/yogi:17/CD1A.260714.001.A9/15938155:user/release-keys
+ro.product.device=yogi
+ro.product.name=yogi
+ro.product.model=Pixel 11 Pro Fold
