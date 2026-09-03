@@ -316,6 +316,11 @@ case "$device_code" in
         # Pixel 10 — Focaltech + Synaptics touch (dual-source)
         modules_touch="lwis cl_dsp-core cs40l26-core cs40l26-i2c focal_touch syna_touch"
         ;;
+    # === malibu — Tensor G6 (Pixel 11 family) ===
+    yogi)
+        # Pixel 11 Pro Fold — Samsung touch via GTI (dual controller, fold), CS40L26 haptics
+        modules_touch="lwis cl_dsp-core cs40l26-core cs40l26-i2c heatmap touch_bus_negotiator goog_touch_interface touch_offload sec_touch"
+        ;;
     *)
         modules_touch=""
         ;;
