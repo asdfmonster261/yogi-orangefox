@@ -274,6 +274,12 @@ TARGET_RECOVERY_FSTAB := $(DEVICE_PATH)/prebuilt/$(DEVICE_BUILD_FLAG)/recovery.f
 
 # Recovery
 TARGET_RECOVERY_PIXEL_FORMAT := ABGR_8888
+# yogi's inner panel renders the shared ABGR_8888 (DRM_FORMAT_RGBA8888) with red and
+# blue swapped (orange shows as blue). RGBX_8888 -> DRM_FORMAT_XBGR8888 puts it in BGR
+# order; confirm on device. Fallback if still off: BGRA_8888 -> DRM_FORMAT_ARGB8888.
+ifeq ($(DEVICE_BUILD_FLAG),malibu)
+TARGET_RECOVERY_PIXEL_FORMAT := RGBX_8888
+endif
 TARGET_USERIMAGES_USE_EXT4 := true
 TARGET_USERIMAGES_USE_F2FS := true
 TARGET_USES_MKE2FS := true
