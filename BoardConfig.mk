@@ -307,6 +307,15 @@ TW_NO_LEGACY_PROPS := true
 TW_MAX_BRIGHTNESS := 3827
 TW_DEFAULT_BRIGHTNESS := 219
 TW_BRIGHTNESS_PATH := "/sys/class/backlight/panel/brightness"
+
+ifeq ($(DEVICE_BUILD_FLAG),malibu)
+# yogi shows recovery on the cover panel, whose backlight is panel1-backlight (DSI-2)
+# with a 0..16383 scale, so the shared 219 default is ~1% (near black). Point at it
+# explicitly and default to a clearly visible level.
+TW_MAX_BRIGHTNESS := 16383
+TW_DEFAULT_BRIGHTNESS := 8000
+TW_BRIGHTNESS_PATH := "/sys/class/backlight/panel1-backlight/brightness"
+endif
 TW_FRAMERATE := 120
 
 # TWRP Configuration - Excludes
