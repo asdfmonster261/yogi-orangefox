@@ -108,6 +108,8 @@ if [ "$DEVICE_BUILD_FLAG" = "gs201" ] || [ "$DEVICE_BUILD_FLAG" = "gs101" ]; the
     export FOX_RECOVERY_VENDOR_BOOT_PARTITION="/dev/block/platform/14700000.ufs/by-name/vendor_boot"
 elif [ "$DEVICE_BUILD_FLAG" = "laguna" ]; then
     export FOX_RECOVERY_VENDOR_BOOT_PARTITION="/dev/block/platform/3c400000.ufs/by-name/vendor_boot"
+elif [ "$DEVICE_BUILD_FLAG" = "malibu" ]; then
+    export FOX_RECOVERY_VENDOR_BOOT_PARTITION="/dev/block/platform/3c2d0000.ufs/by-name/vendor_boot"
 else
     export FOX_RECOVERY_VENDOR_BOOT_PARTITION="/dev/block/platform/13200000.ufs/by-name/vendor_boot"
 fi
@@ -129,6 +131,9 @@ elif [ "$DEVICE_BUILD_FLAG" = "gs101" ]; then
 elif [ "$DEVICE_BUILD_FLAG" = "laguna" ]; then
     export TARGET_DEVICE_ALT="blazer,mustang,frankel,rango,deepspace"
     export FOX_TARGET_DEVICES="blazer,mustang,frankel,rango,deepspace"
+elif [ "$DEVICE_BUILD_FLAG" = "malibu" ]; then
+    export TARGET_DEVICE_ALT="yogi"
+    export FOX_TARGET_DEVICES="yogi"
 else
     export TARGET_DEVICE_ALT="shiba,husky,akita,shusky"
     export FOX_TARGET_DEVICES="shiba,husky,akita,shusky"
