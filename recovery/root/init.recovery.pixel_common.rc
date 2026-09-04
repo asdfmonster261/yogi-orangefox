@@ -27,10 +27,12 @@ on init
     # --- USB controller setup ---
     # gs201/zuma/zumapro: DWC3 at 11210000 via 11210000.usb bus
     # laguna (Tensor G5): DWC3 at c400000 via c450000.usb3 bus
+    # malibu (Tensor G6): DWC3 at a210000 via a200000.usb3 bus
     # Both waits are attempted with short timeouts — the wrong one fails harmlessly.
     # sys.usb.controller is set by runatinit.sh based on detected SoC family.
     wait /sys/devices/platform/11210000.usb/11210000.dwc3/driver 3
     wait /sys/devices/platform/simple_usb_bus/c450000.usb3/c400000.dwc3/driver 3
+    wait /sys/devices/platform/simple_usb_bus/a200000.usb3/a210000.dwc3/driver 3
     setprop sys.usb.configfs 1
     setprop servicemanager true
     start vendor.boot-hal-1-2
