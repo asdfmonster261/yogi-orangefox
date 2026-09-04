@@ -26,7 +26,15 @@
 				<placement x="%ab_btn1_x%" y="%ab2_y%" placement="4"/>
 			</image>
 
-			<text style="text_ab_switch">
+			<text style="text_ab_switch_on">
+				<condition var1="tw_mtp_enabled" var2="1"/>
+				<condition var1="tw_has_mtp" var2="1"/>
+				<placement x="%col1_x_indent%" y="%ab_bc2_y%"/>
+				<text>{@enable_mtp_btn}</text>
+			</text>
+
+			<text style="text_ab_switch_off">
+				<condition var1="tw_mtp_enabled" op="!=" var2="1"/>
 				<condition var1="tw_has_mtp" var2="1"/>
 				<placement x="%col1_x_indent%" y="%ab_bc2_y%"/>
 				<text>{@enable_mtp_btn}</text>
