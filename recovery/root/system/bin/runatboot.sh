@@ -318,8 +318,12 @@ case "$device_code" in
         ;;
     # === malibu — Tensor G6 (Pixel 11 family) ===
     yogi)
-        # Pixel 11 Pro Fold — Samsung touch via GTI (dual controller, fold), CS40L26 haptics
-        modules_touch="lwis cl_dsp-core cs40l26-core cs40l26-i2c heatmap touch_bus_negotiator goog_touch_interface touch_offload sec_touch"
+        # Pixel 11 Pro Fold — Samsung sec_touch via GTI, CS40L26 haptics.
+        # Dependency order matters (the loader does a single pass, no retry):
+        # aoc_tbn_service_dev and heatmap/touch_offload load before
+        # goog_touch_interface/sec_touch. lwis is not a touch dep (it needs
+        # system_dlkm pwrseq-core, absent in recovery) and is omitted.
+        modules_touch="cl_dsp-core cs40l26-core cs40l26-i2c aoc_tbn_service_dev heatmap touch_offload touch_bus_negotiator goog_touch_interface sec_touch"
         ;;
     *)
         modules_touch=""
