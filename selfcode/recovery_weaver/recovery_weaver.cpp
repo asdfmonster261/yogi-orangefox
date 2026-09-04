@@ -1,9 +1,16 @@
 /*
- * recovery_weaver - A14-native Weaver HAL proxy for Pixel 8 recovery
+ * recovery_weaver - A14-native Weaver HAL proxy for Pixel recovery
  *
- * Talks to Titan M2 (GSC) directly via /dev/gsc0 one_pass_call ioctl.
- * GSC Weaver uses protobuf serialization (APP_ID_WEAVER 0x03).
- * Registers IWeaver/default on binder for CE FBE decryption.
+ * Talks to the GSC (Titan) directly via /dev/gsc0 one_pass_call ioctl and
+ * registers IWeaver/default on binder for CE FBE decryption.
+ *
+ * The GSC weaver app (APP_ID 0x03) does not use protobuf here: Titan M3 speaks
+ * raw little-endian structs, each prefixed with a fixed 4-byte header word.
+ *   getConfig reply : [u32 hdr][u32 slots][u32 keySize][u32 valueSize]
+ *   read request    : [u32 hdr][u32 slot][u8 key[16]]
+ *   read reply      : [u32 hdr][u32 error][u32 throttle][u32 rsvd][u8 value[16]]
+ * error 0 means the key matched and value holds the escrowed secret. The header
+ * word is not validated by the app; we send the value the config path returns.
  */
 
 #define LOG_TAG "recovery_weaver"
@@ -45,41 +52,21 @@ struct gsa_ioc_nos_call_req {
 #define WEAVER_WRITE      1
 #define WEAVER_READ       2
 
+// The header word the GSC prefixes every weaver message with. Constant, and the
+// app does not check it on input, so any value works; keep the observed one.
+#define WEAVER_MSG_HDR    0x000e0000u
 
-static bool pb_decode_varint(const uint8_t *buf, uint32_t len,
-                             uint32_t *pos, uint64_t *val) {
-    *val = 0;
-    unsigned shift = 0;
-    while (*pos < len) {
-        uint8_t b = buf[(*pos)++];
-        *val |= (uint64_t)(b & 0x7F) << shift;
-        if ((b & 0x80) == 0) return true;
-        shift += 7;
-        if (shift >= 64) return false;
-    }
-    return false;
+
+static inline uint32_t rd32(const uint8_t *p) {
+    return (uint32_t)p[0] | ((uint32_t)p[1] << 8) |
+           ((uint32_t)p[2] << 16) | ((uint32_t)p[3] << 24);
 }
 
-static void pb_encode_varint(uint8_t *buf, uint32_t *pos, uint64_t val) {
-    while (val > 0x7F) {
-        buf[(*pos)++] = (uint8_t)(val & 0x7F) | 0x80;
-        val >>= 7;
-    }
-    buf[(*pos)++] = (uint8_t)val;
-}
-
-static void pb_encode_uint32(uint8_t *buf, uint32_t *pos,
-                                uint32_t field, uint32_t val) {
-    pb_encode_varint(buf, pos, (uint64_t)(field << 3) | 0);
-    pb_encode_varint(buf, pos, val);
-}
-
-static void pb_encode_bytes(uint8_t *buf, uint32_t *pos,
-                             uint32_t field, const uint8_t *data, uint32_t len) {
-    pb_encode_varint(buf, pos, (uint64_t)(field << 3) | 2);
-    pb_encode_varint(buf, pos, len);
-    memcpy(buf + *pos, data, len);
-    *pos += len;
+static inline void wr32(uint8_t *p, uint32_t v) {
+    p[0] = (uint8_t)(v & 0xff);
+    p[1] = (uint8_t)((v >> 8) & 0xff);
+    p[2] = (uint8_t)((v >> 16) & 0xff);
+    p[3] = (uint8_t)((v >> 24) & 0xff);
 }
 
 
@@ -157,139 +144,96 @@ struct RecoveryWeaver : public BnWeaver {
                             nullptr, 0,
                             resp_buf, &reply_len, &call_status);
 
-        if (ret < 0 || call_status != APP_SUCCESS) {
+        if (ret < 0 || call_status != APP_SUCCESS || reply_len < 16) {
             LOG(ERROR) << "getConfig failed: ret=" << ret
-                        << " status=0x" << std::hex << call_status;
+                       << " status=0x" << std::hex << call_status
+                       << " len=" << std::dec << reply_len;
             return ndk::ScopedAStatus::fromServiceSpecificError(1);
         }
 
-        uint32_t slots = 0, key_size = 0, value_size = 0;
-        uint32_t pos = 0;
-        while (pos < reply_len) {
-            uint64_t tag;
-            if (!pb_decode_varint(resp_buf, reply_len, &pos, &tag)) break;
-            uint32_t field = tag >> 3;
-            uint32_t wire = tag & 0x7;
-            if (wire == 0) {
-                uint64_t val;
-                if (!pb_decode_varint(resp_buf, reply_len, &pos, &val)) break;
-                switch (field) {
-                    case 1: slots = (uint32_t)val; break;
-                    case 2: key_size = (uint32_t)val; break;
-                    case 3: value_size = (uint32_t)val; break;
-                }
-            } else if (wire == 2) {
-                uint64_t slen;
-                if (!pb_decode_varint(resp_buf, reply_len, &pos, &slen)) break;
-                pos += (uint32_t)slen;
-            } else {
-                break;
-            }
-        }
+        out_config->slots     = static_cast<int32_t>(rd32(resp_buf + 4));
+        out_config->keySize   = static_cast<int32_t>(rd32(resp_buf + 8));
+        out_config->valueSize = static_cast<int32_t>(rd32(resp_buf + 12));
 
-        out_config->slots    = static_cast<int32_t>(slots);
-        out_config->keySize  = static_cast<int32_t>(key_size);
-        out_config->valueSize = static_cast<int32_t>(value_size);
-
-        LOG(INFO) << "getConfig: slots=" << slots
-                    << " keySize=" << key_size
-                    << " valueSize=" << value_size;
+        LOG(INFO) << "getConfig: slots=" << out_config->slots
+                  << " keySize=" << out_config->keySize
+                  << " valueSize=" << out_config->valueSize;
         return ndk::ScopedAStatus::ok();
     }
 
     ::ndk::ScopedAStatus read(int32_t in_slotId,
-                                const std::vector<uint8_t> &in_key,
-                                WeaverReadResponse *out_response) override {
+                              const std::vector<uint8_t> &in_key,
+                              WeaverReadResponse *out_response) override {
         if (in_key.size() != 16) {
             LOG(ERROR) << "read: bad key size " << in_key.size();
             *out_response = {0, {}, WeaverReadStatus::FAILED};
             return ndk::ScopedAStatus::ok();
         }
 
-        uint8_t req_buf[64] = {};
-        uint32_t req_len = 0;
-        pb_encode_uint32(req_buf, &req_len, 1, static_cast<uint32_t>(in_slotId));
-        pb_encode_bytes(req_buf, &req_len, 2, in_key.data(), 16);
+        uint8_t req_buf[24] = {};
+        wr32(req_buf + 0, WEAVER_MSG_HDR);
+        wr32(req_buf + 4, static_cast<uint32_t>(in_slotId));
+        memcpy(req_buf + 8, in_key.data(), 16);
 
-        uint8_t resp_buf[128] = {};
+        uint8_t resp_buf[64] = {};
         uint32_t reply_len = sizeof(resp_buf);
         uint32_t call_status = 0;
 
         int ret = nos_call(APP_ID_WEAVER, WEAVER_READ,
-                            req_buf, req_len,
+                            req_buf, sizeof(req_buf),
                             resp_buf, &reply_len, &call_status);
 
-        if (ret < 0 || call_status != APP_SUCCESS) {
-            LOG(ERROR) << "read slot " << in_slotId
-                        << " failed: ret=" << ret
-                        << " status=0x" << std::hex << call_status;
+        if (ret < 0 || call_status != APP_SUCCESS || reply_len < 32) {
+            LOG(ERROR) << "read slot " << in_slotId << " failed: ret=" << ret
+                       << " status=0x" << std::hex << call_status
+                       << " len=" << std::dec << reply_len;
             *out_response = {0, {}, WeaverReadStatus::FAILED};
             return ndk::ScopedAStatus::ok();
         }
 
-        uint32_t error = 0, throttle_msec = 0;
+        uint32_t error = rd32(resp_buf + 4);
+        uint32_t throttle = rd32(resp_buf + 8);
+
         std::vector<uint8_t> value;
-        uint32_t pos = 0;
-        while (pos < reply_len) {
-            uint64_t tag;
-            if (!pb_decode_varint(resp_buf, reply_len, &pos, &tag)) break;
-            uint32_t field = tag >> 3;
-            uint32_t wire = tag & 0x7;
-            if (wire == 0) {
-                uint64_t val;
-                if (!pb_decode_varint(resp_buf, reply_len, &pos, &val)) break;
-                switch (field) {
-                    case 1: error = (uint32_t)val; break;
-                    case 2: throttle_msec = (uint32_t)val; break;
-                }
-            } else if (wire == 2) {
-                uint64_t slen;
-                if (!pb_decode_varint(resp_buf, reply_len, &pos, &slen)) break;
-                if (field == 3 && pos + slen <= reply_len) {
-                    value.assign(resp_buf + pos, resp_buf + pos + slen);
-                }
-                pos += (uint32_t)slen;
-            } else {
-                break;
-            }
+        WeaverReadStatus status;
+        if (error == 0) {
+            status = WeaverReadStatus::OK;
+            value.assign(resp_buf + 16, resp_buf + 32);
+        } else {
+            // Non-zero means the key did not match (or the slot is throttled);
+            // report INCORRECT_KEY so the caller re-prompts.
+            status = WeaverReadStatus::INCORRECT_KEY;
         }
 
-        WeaverReadStatus aidl_status;
-        switch (error) {
-            case 0: aidl_status = WeaverReadStatus::OK; break;
-            case 1: aidl_status = WeaverReadStatus::INCORRECT_KEY; break;
-            case 2: aidl_status = WeaverReadStatus::THROTTLE; break;
-            default: aidl_status = WeaverReadStatus::FAILED; break;
-        }
-
-        out_response->timeout = static_cast<long>(throttle_msec);
+        out_response->timeout = static_cast<int64_t>(throttle);
         out_response->value = std::move(value);
-        out_response->status = aidl_status;
+        out_response->status = status;
 
-        LOG(INFO) << "read slot " << in_slotId
-                    << ": error=" << error
-                    << " throttle=" << throttle_msec
-                    << " value_len=" << out_response->value.size();
+        LOG(INFO) << "read slot " << in_slotId << ": error=" << error
+                  << " throttle=" << throttle
+                  << " value_len=" << out_response->value.size();
         return ndk::ScopedAStatus::ok();
     }
 
     ::ndk::ScopedAStatus write(int32_t in_slotId,
-                                const std::vector<uint8_t> &in_key,
-                                const std::vector<uint8_t> &in_value) override {
+                               const std::vector<uint8_t> &in_key,
+                               const std::vector<uint8_t> &in_value) override {
+        // Recovery never enrolls credentials, so this path is not exercised;
+        // it mirrors read's raw layout for completeness.
         if (in_key.size() != 16 || in_value.size() != 16) {
             LOG(ERROR) << "write: bad key/value size";
             return ndk::ScopedAStatus::fromServiceSpecificError(1);
         }
 
         uint8_t req_buf[64] = {};
-        uint32_t req_len = 0;
-        pb_encode_uint32(req_buf, &req_len, 1, static_cast<uint32_t>(in_slotId));
-        pb_encode_bytes(req_buf, &req_len, 2, in_key.data(), 16);
-        pb_encode_bytes(req_buf, &req_len, 3, in_value.data(), 16);
+        wr32(req_buf + 0, WEAVER_MSG_HDR);
+        wr32(req_buf + 4, static_cast<uint32_t>(in_slotId));
+        memcpy(req_buf + 8, in_key.data(), 16);
+        memcpy(req_buf + 24, in_value.data(), 16);
 
         uint32_t call_status = 0;
         int ret = nos_call(APP_ID_WEAVER, WEAVER_WRITE,
-                            req_buf, req_len,
+                            req_buf, 40,
                             nullptr, nullptr, &call_status);
 
         if (ret < 0 || call_status != APP_SUCCESS) {
