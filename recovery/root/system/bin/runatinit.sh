@@ -177,7 +177,7 @@ _log "ro.boot.mode=$(getprop ro.boot.mode 2>/dev/null)"
 _log "/dev/block contents: $(ls /dev/block/ 2>/dev/null | tr '\n' ' ')"
 
 case "$device_code" in
-    yogi|malibu) family="malibu" ;;
+    yogi|cubs|grizzly|kodiak|malibu) family="malibu" ;;
     *)           family="" ;;
 esac
 _log "detected family=$family"
