@@ -266,6 +266,13 @@ case "$device_code" in
         # system_dlkm pwrseq-core, absent in recovery) and is omitted.
         modules_touch="cl_dsp-core cs40l26-core cs40l26-i2c aoc_tbn_service_dev heatmap touch_offload touch_bus_negotiator goog_touch_interface sec_touch"
         ;;
+    cubs|grizzly|kodiak)
+        # Pixel 11 / 11 Pro / 11 Pro XL - Focaltech and Synaptics touch variants
+        # (panel-supplier dependent, per the stock dtbo); load both and let the
+        # present controller probe. Same haptics + GTI chain as yogi, sec_touch
+        # swapped for focal_touch + syna_touch.
+        modules_touch="cl_dsp-core cs40l26-core cs40l26-i2c aoc_tbn_service_dev heatmap touch_offload touch_bus_negotiator goog_touch_interface focal_touch syna_touch"
+        ;;
     *)
         modules_touch=""
         ;;

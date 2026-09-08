@@ -1,0 +1,35 @@
+# grizzly.prop - Pixel 11 Pro (grizzly) device identity
+# Applied by runatinit.sh during on early-init.
+
+ro.quick_start.device_id=grizzly
+ro.lineage.device=grizzly
+ro.crdroid.device=grizzly
+ro.product.system.device=grizzly
+ro.product.system.model=Pixel 11 Pro
+ro.product.system.name=grizzly
+ro.system.build.fingerprint=google/grizzly/grizzly:17/CD1A.260714.001.A9/15938155:user/release-keys
+ro.build.display.id=CD1A.260714.001.A9
+ro.build.flavor=grizzly-eng
+ro.build.product=grizzly
+ro.build.description=grizzly-user 17 CD1A.260714.001.A9 15938155 release-keys
+ro.display.series=Pixel 11 Pro
+ro.product.vendor.device=grizzly
+ro.product.vendor.model=Pixel 11 Pro
+ro.product.vendor.name=grizzly
+ro.vendor.build.fingerprint=google/grizzly/grizzly:17/CD1A.260714.001.A9/15938155:user/release-keys
+ro.product.board=grizzly
+ro.product.odm.device=grizzly
+ro.product.odm.model=Pixel 11 Pro
+ro.product.odm.name=grizzly
+ro.odm.build.fingerprint=google/grizzly/grizzly:17/CD1A.260714.001.A9/15938155:user/release-keys
+ro.product.product.device=grizzly
+ro.product.product.model=Pixel 11 Pro
+ro.product.product.name=grizzly
+ro.product.build.fingerprint=google/grizzly/grizzly:17/CD1A.260714.001.A9/15938155:user/release-keys
+ro.product.system_ext.device=grizzly
+ro.product.system_ext.model=Pixel 11 Pro
+ro.product.system_ext.name=grizzly
+ro.system_ext.build.fingerprint=google/grizzly/grizzly:17/CD1A.260714.001.A9/15938155:user/release-keys
+ro.product.device=grizzly
+ro.product.name=grizzly
+ro.product.model=Pixel 11 Pro
