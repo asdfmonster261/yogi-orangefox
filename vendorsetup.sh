@@ -83,8 +83,8 @@ export FOX_VANILLA_BUILD=1
 export OF_DISABLE_MIUI_SPECIFIC_FEATURES=1
 
 # --- Multi-device support ---
-export TARGET_DEVICE_ALT="yogi"
-export FOX_TARGET_DEVICES="yogi"
+export TARGET_DEVICE_ALT="yogi,cubs,grizzly,kodiak"
+export FOX_TARGET_DEVICES="yogi,cubs,grizzly,kodiak"
 # --- OrangeFox UI ---
 # OF_SCREEN_H is the compile-time DEFAULT screen height for theme scaling.
 # Devices with different screen heights override this at

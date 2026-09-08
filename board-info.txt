@@ -1,1 +1,1 @@
-require board=yogi
+require board=yogi|cubs|grizzly|kodiak

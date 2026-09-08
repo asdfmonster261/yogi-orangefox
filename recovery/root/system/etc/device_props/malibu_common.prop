@@ -1,6 +1,6 @@
 # malibu_common.prop - shared properties for all Malibu (Tensor G6) devices
 # Applied by runatinit.sh during on early-init.
-# Devices: yogi (Pixel 11 Pro Fold)
+# Devices: yogi (Pixel 11 Pro Fold), cubs (Pixel 11), grizzly (Pixel 11 Pro), kodiak (Pixel 11 Pro XL)
 
 # SoC family identifier, used by init.rc for conditional service start
 ro.recovery.soc_family=malibu
