@@ -1,12 +1,12 @@
-# init.recovery.pixel_common.rc — OrangeFox Recovery for all Tensor SoC Pixels.
-# Shared init for all devices across gs201 (G2), zuma (G3), zumapro (G4), laguna (G5) families.
+# init.recovery.pixel_common.rc - OrangeFox Recovery for the Pixel 11 (malibu) family.
+# Shared init for the malibu (Tensor G6) family.
 #
 # This file is NOT auto-loaded by init (init only loads init.recovery.${ro.hardware}.rc).
 # Instead, each device-specific RC imports this file.
 #
 # Init chain: kernel → init → init.recovery.{device}.rc → this file
 # Service chain: storageproxyd → keymint → weaver (for FBE CE decryption)
-# DOF_SCREEN_H is set in per-device stubs (e.g. init.recovery.husky.rc) before
+# DOF_SCREEN_H is set in per-device stubs (e.g. init.recovery.yogi.rc) before
 # this file is imported, so it's available before data.cpp reads it.
 
 on early-init
@@ -19,19 +19,13 @@ on early-init
 on init
     # --- CPU temperature zone discovery ---
     # TWRP reads TW_CUSTOM_CPU_TEMP_PATH (/dev/thermal_cpu) for the CPU temperature widget.
-    # Zone numbering differs across Tensor generations: on zumapro (Pixel 9) the
-    # cp_thermal_zone.ko module is absent, so zone0 may not be the BIG cluster.
+    # Zone numbering differs across Tensor generations: on some generations cp_thermal_zone.ko is absent, so zone0 may not be the BIG cluster.
     # setup_cpu_temp.sh enumerates zones by type name and symlinks the BIG zone.
     exec u:r:recovery:s0 root root -- /system/bin/sh /system/bin/setup_cpu_temp.sh
 
     # --- USB controller setup ---
-    # gs201/zuma/zumapro: DWC3 at 11210000 via 11210000.usb bus
-    # laguna (Tensor G5): DWC3 at c400000 via c450000.usb3 bus
-    # malibu (Tensor G6): DWC3 at a210000 via a200000.usb3 bus
-    # Both waits are attempted with short timeouts — the wrong one fails harmlessly.
-    # sys.usb.controller is set by runatinit.sh based on detected SoC family.
-    wait /sys/devices/platform/11210000.usb/11210000.dwc3/driver 3
-    wait /sys/devices/platform/simple_usb_bus/c450000.usb3/c400000.dwc3/driver 3
+    # malibu (Tensor G6): DWC3 at a210000 via a200000.usb3 bus.
+    # sys.usb.controller is set by runatinit.sh.
     wait /sys/devices/platform/simple_usb_bus/a200000.usb3/a210000.dwc3/driver 3
     setprop sys.usb.configfs 1
     setprop servicemanager true
@@ -79,7 +73,7 @@ on boot
     setprop vendor.usb.use_ffs_mtp 1
 
     # Clamp LTPO panel minimum refresh rate to 30Hz to prevent UI ghosting.
-    # LTPO panels (husky, komodo etc.) idle at 1Hz causing visible ghosting;
+    # LTPO panels idle at 1Hz causing visible ghosting;
     # standard 30-120Hz panels are unaffected (sysfs won't exist on those).
     write /sys/devices/platform/exynos-drm/primary-panel/min_vrefresh 60
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# FOX_LOCAL_CALLBACK_SCRIPT for Zuma SoC Pixel devices (shiba/husky/akita)
+# FOX_LOCAL_CALLBACK_SCRIPT for the malibu (Pixel 11) family
 #
 # Called by OrangeFox_A14.sh:
 #   --first-call:  $1 = FOX_RAMDISK (after theme copy, before UPX/reduce_ramdisk_size)
@@ -31,9 +31,9 @@ if [ -f "$BUILD_CONF" ]; then
     echo "    [CONFIG] Read platform from .build_platform.conf: PLATFORM=$PLATFORM"
 else
     echo "    [CONFIG] WARNING: .build_platform.conf not found, falling back to env"
-    PLATFORM="${DEVICE_BUILD_FLAG:-zuma}"
+    PLATFORM="${DEVICE_BUILD_FLAG:-malibu}"
 fi
-: "${PLATFORM:=zuma}"
+: "${PLATFORM:=malibu}"
 
 # =========================================================================
 # LGZ compression configuration
@@ -553,7 +553,7 @@ lgz_compress_ramdisk() {
 
 case "$CALL_TYPE" in
     --first-call)
-        echo "=== [zuma] fox_build_callback: --first-call ==="
+        echo "=== [$PLATFORM] fox_build_callback: --first-call ==="
         echo "    Ramdisk: $TARGET_DIR"
 
         # Overlay custom UI pages over the default OrangeFox pages
@@ -573,31 +573,10 @@ case "$CALL_TYPE" in
         ;;
 
     --second-call)
-        echo "=== [zuma] fox_build_callback: --second-call ==="
+        echo "=== [$PLATFORM] fox_build_callback: --second-call ==="
         echo "    Ramdisk: $TARGET_DIR (final, pre-cpio)"
 
-        # --- Per-platform twrp.flags injection ---
-        # GS201 uses UFS controller at 14700000 (vs 13200000 for zuma/zumapro).
-        # Laguna uses UFS controller at 3c400000.
-        # The default twrp.flags uses 13200000.ufs paths; gs201/laguna need different paths.
-        # Platform-specific twrp_*.flags variants are included in the ramdisk for runtime swap;
-        # this build-time copy ensures the correct flags file is the default.
         platform="$PLATFORM"
-        if [ "$platform" = "gs201" ]; then
-            gs201_flags="$TARGET_DIR/system/etc/twrp_gs201.flags"
-            default_flags="$TARGET_DIR/system/etc/twrp.flags"
-            if [ -f "$gs201_flags" ]; then
-                echo "    [PLATFORM] Swapping twrp.flags for gs201 (UFS 14700000)"
-                cp -f "$gs201_flags" "$default_flags"
-            fi
-        elif [ "$platform" = "laguna" ]; then
-            laguna_flags="$TARGET_DIR/system/etc/twrp_laguna.flags"
-            default_flags="$TARGET_DIR/system/etc/twrp.flags"
-            if [ -f "$laguna_flags" ]; then
-                echo "    [PLATFORM] Swapping twrp.flags for laguna (UFS 3c400000)"
-                cp -f "$laguna_flags" "$default_flags"
-            fi
-        fi
 
         # --- Per-platform keymint binary injection ---
         # Zuma/Zumapro use prebuilt Rust keymint from prebuilt/<platform>/bin/hw/.
@@ -661,7 +640,7 @@ case "$CALL_TYPE" in
         ;;
 
     --last-call)
-        echo "=== [zuma] fox_build_callback: --last-call ==="
+        echo "=== [$PLATFORM] fox_build_callback: --last-call ==="
         echo "    Working dir: $TARGET_DIR"
         # No additional actions needed for the zip phase
         ;;

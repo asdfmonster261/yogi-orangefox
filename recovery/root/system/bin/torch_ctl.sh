@@ -1,6 +1,6 @@
 #!/sbin/sh
 # ======================================================================
-# Universal Tensor Torch Control (gs201 / zuma / zumapro / gs305-malibu)
+# Torch control for the malibu (Pixel 11) family (LM3644 flash LED)
 # Fully dynamic I2C & GPIO discovery. Zero hardcoded paths.
 # ======================================================================
 

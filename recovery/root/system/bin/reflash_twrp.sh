@@ -1,7 +1,7 @@
 #!/sbin/sh
 
 # reflash_twrp.sh — Reflash recovery to both vendor_boot slots from ramdisk snapshot.
-# Works on all Zuma SoC Pixels (shiba/husky/akita) — same partition layout.
+# Works on the malibu (Pixel 11) family — same partition layout.
 #
 # The snapshot at /dev/ramdisk_snapshot/ preserves the exact ramdisk state
 # from boot time (before LGZ decompression), so the repacked image is
@@ -53,13 +53,10 @@ mkdir -p "$FOLDER/vendor_ramdisk" || _die "Cannot create $FOLDER/vendor_ramdisk"
 
 device_code=$(getprop ro.hardware)
 _log "device_code=$device_code"
-printf 'androidboot.usbcontroller=11210000.dwc3\n' >> "$FOLDER/bootconfig"
+printf 'androidboot.usbcontroller=a210000.dwc3\n' >> "$FOLDER/bootconfig"
 case "$device_code" in
-    panther|cheetah|lynx|pantah|gs201)
-        printf 'androidboot.boot_devices=14700000.ufs\n' >> "$FOLDER/bootconfig"
-        ;;
     *)
-        printf 'androidboot.boot_devices=13200000.ufs\n' >> "$FOLDER/bootconfig"
+        printf 'androidboot.boot_devices=3c2d0000.ufs\n' >> "$FOLDER/bootconfig"
         ;;
 esac
 printf 'androidboot.load_modules_parallel=true\n' >> "$FOLDER/bootconfig"

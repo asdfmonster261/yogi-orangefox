@@ -1,3 +1,0 @@
-# init.recovery.blazer.rc — Pixel 10 Pro (blazer) stub.
-# Loaded by init when ro.hardware=blazer. All actual init code is in init.recovery.pixel_common.rc.
-import /init.recovery.pixel_common.rc

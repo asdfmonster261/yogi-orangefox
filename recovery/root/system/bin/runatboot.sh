@@ -257,68 +257,9 @@ slot_detect
 load_susfs_rename_fix
 
 case "$device_code" in
-    panther)
-        # Pixel 7 — Focaltech touch
-        modules_touch="stmvl53l1 lwis cl_dsp-core cs40l26-core cs40l26-i2c goodixfp heatmap goog_touch_interface focal_touch fps_touch_handler"
-        ;;
-    cheetah)
-        # Pixel 7 Pro — Synaptics touch
-        modules_touch="stmvl53l1 lwis cl_dsp-core cs40l26-core cs40l26-i2c goodixfp heatmap goog_touch_interface syna_touch fps_touch_handler"
-        ;;
-    lynx)
-        # Pixel 7a — Goodix + Focaltech touch (dual-source)
-        modules_touch="stmvl53l1 lwis cl_dsp-core cs40l26-core cs40l26-i2c goodixfp heatmap goog_touch_interface goodix_brl_touch focal_touch fps_touch_handler"
-        ;;
-    tangorpro)
-        # Pixel Tablet — Novatek NVT SPI touch (10.95" LCD, no camera ToF, no under-display FP)
-        modules_touch="heatmap goog_touch_interface touch_bus_negotiator touch_offload goog_usi_stylus nvt_touch fps_touch_handler"
-        ;;
-    # === zuma — Tensor G3 (Pixel 8 family) ===
-    shiba)
-        # Pixel 8
-        modules_touch="stmvl53l1 lwis cl_dsp-core cs40l26-core cs40l26-i2c goodixfp heatmap goog_touch_interface sec_touch ftm5 goodix_brl_touch fps_touch_handler"
-        ;;
-    husky)
-        # Pixel 8 Pro — same module set as shiba
-        modules_touch="stmvl53l1 lwis cl_dsp-core cs40l26-core cs40l26-i2c goodixfp heatmap goog_touch_interface sec_touch ftm5 goodix_brl_touch fps_touch_handler"
-        ;;
-    akita)
-        # Pixel 8a — no sec_touch/ftm5 (Goodix only)
-        modules_touch="stmvl53l1 lwis cl_dsp-core cs40l26-core cs40l26-i2c goodixfp heatmap goog_touch_interface goodix_brl_touch fps_touch_handler"
-        ;;
-    # === zumapro — Tensor G4 (Pixel 9 family) ===
-    tokay)
-        # Pixel 9 — Synaptics + Samsung touch, QBT ultrasonic fingerprint
-        modules_touch="stmvl53l1 lwis cl_dsp-core cs40l26-core cs40l26-i2c goodixfp qbt_handler heatmap goog_touch_interface sec_touch syna_touch fps_touch_handler"
-        ;;
-    komodo)
-        # Pixel 9 Pro XL — Synaptics + Samsung touch, QBT ultrasonic fingerprint
-        modules_touch="stmvl53l1 lwis cl_dsp-core cs40l26-core cs40l26-i2c goodixfp qbt_handler heatmap goog_touch_interface sec_touch syna_touch fps_touch_handler"
-        ;;
-    caiman)
-        # Pixel 9 Pro — Synaptics + Samsung touch, QBT ultrasonic fingerprint
-        modules_touch="stmvl53l1 lwis cl_dsp-core cs40l26-core cs40l26-i2c goodixfp qbt_handler heatmap goog_touch_interface sec_touch syna_touch fps_touch_handler"
-        ;;
-    tegu)
-        # Pixel 9a — Synaptics touch (no sec_touch, no QBT)
-        modules_touch="stmvl53l1 lwis cl_dsp-core cs40l26-core cs40l26-i2c goodixfp heatmap goog_touch_interface syna_touch fps_touch_handler"
-        ;;
-    # === laguna — Tensor G5 (Pixel 10 family) ===
-    blazer)
-        # Pixel 10 Pro — Focaltech + Synaptics touch (dual-source)
-        modules_touch="lwis cl_dsp-core cs40l26-core cs40l26-i2c focal_touch syna_touch"
-        ;;
-    mustang)
-        # Pixel 10 Pro XL — Focaltech + Synaptics touch (dual-source)
-        modules_touch="lwis cl_dsp-core cs40l26-core cs40l26-i2c focal_touch syna_touch"
-        ;;
-    frankel)
-        # Pixel 10 — Focaltech + Synaptics touch (dual-source)
-        modules_touch="lwis cl_dsp-core cs40l26-core cs40l26-i2c focal_touch syna_touch"
-        ;;
-    # === malibu — Tensor G6 (Pixel 11 family) ===
+    # === malibu - Tensor G6 (Pixel 11 family) ===
     yogi)
-        # Pixel 11 Pro Fold — Samsung sec_touch via GTI, CS40L26 haptics.
+        # Pixel 11 Pro Fold - Samsung sec_touch via GTI, CS40L26 haptics.
         # Dependency order matters (the loader does a single pass, no retry):
         # aoc_tbn_service_dev and heatmap/touch_offload load before
         # goog_touch_interface/sec_touch. lwis is not a touch dep (it needs
@@ -375,20 +316,7 @@ if [ -n "$modules_touch" ]; then
     modules_touch_install
 
     soc_family=$(getprop ro.recovery.soc_family)
-    case "$soc_family" in
-        gs201)
-            cs40l26_pm="/sys/devices/platform/10d50000.hsi2c/i2c-0/0-0043/power/control"
-            ;;
-        zumapro)
-            cs40l26_pm="/sys/devices/platform/10c80000.hsi2c/i2c-0/0-0043/power/control"
-            ;;
-        laguna)
-            cs40l26_pm="/sys/devices/platform/10c80000.hsi2c/i2c-0/0-0043/power/control"
-            ;;
-        *)
-            cs40l26_pm="/sys/devices/platform/10c80000.hsi2c/i2c-0/0-0043/power/control"
-            ;;
-    esac
+    cs40l26_pm="/sys/devices/platform/10c80000.hsi2c/i2c-0/0-0043/power/control"
     if [ -f "$cs40l26_pm" ]; then
         echo on > "$cs40l26_pm"
         echo "I:haptics: CS40L26 runtime PM set to 'on'" >> "$LOGF"

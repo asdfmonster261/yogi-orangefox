@@ -5,7 +5,7 @@
 #
 
 # device.mk — Package list, crypto config, and build props for Tensor-based Pixels.
-# Covers gs201 (Tensor G2), zuma (Tensor G3), zumapro (Tensor G4), laguna (Tensor G5).
+# Covers malibu (Tensor G6): yogi (Pixel 11 Pro Fold) and its Pixel 11 siblings.
 # Custom recovery modules (weaver, storageproxyd, etc.) are built from selfcode/.
 
 LOCAL_PATH := device/google/pixels
@@ -62,11 +62,11 @@ BOARD_USES_METADATA_PARTITION := true
 # Virtual A/B
 ENABLE_VIRTUAL_AB := true
 
-# Build properties — defaults to shiba fingerprint, overridden per-device at runtime by runatboot.sh
+# Build properties: defaults to yogi fingerprint, overridden per-device at runtime by runatboot.sh
 PRODUCT_BUILD_PROP_OVERRIDES += \
-    BuildDesc="shiba-user 15 AP3A.241005.015 12366759 release-keys" \
-    BuildFingerprint=google/shiba/shiba:15/AP3A.241005.015/12366759:user/release-keys \
-    DeviceProduct=shiba
+    BuildDesc="yogi-user 17 CD1A.260714.001.A9 15938155 release-keys" \
+    BuildFingerprint=google/yogi/yogi:17/CD1A.260714.001.A9/15938155:user/release-keys \
+    DeviceProduct=yogi
 
 PRODUCT_SOONG_NAMESPACES += $(LOCAL_PATH)
 
@@ -82,42 +82,11 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
     recovery_weaver
 
-# gs201/gs101 Trusty TA speaks Keymaster 4.0 (not KeyMint AIDL) — the AOSP C++ binary
-# auto-negotiates via GetVersion fallback. Build it so callback can swap it in.
-ifneq (,$(filter gs201 gs101,$(DEVICE_BUILD_FLAG)))
-PRODUCT_PACKAGES += android.hardware.security.keymint-service.trusty
-endif
 
 
-# Firstage ramdisk packages
-# conf-zuma/Android.bp    → fstab.zuma* from fstab.zuma.in        (Tensor G3, UFS 13200000)
-# conf-zumapro/f2fs/      → fstab.zumapro* from modular sources   (Tensor G4, UFS 13200000)
-# conf-gs201/Android.bp   → fstab.gs201* from fstab.gs201.in      (Tensor G2, UFS 14700000)
-# conf-laguna/f2fs/       → fstab.laguna* from modular sources    (Tensor G5, UFS 3c400000)
-# conf-malibu/f2fs/       → fstab.malibu* from modular sources    (Tensor G6, UFS 3c2d0000)
-# conf-gs101/             → future: fstab.gs101* (Tensor G1, UFS 14700000 — same as gs201)
-ifeq ($(DEVICE_BUILD_FLAG),zumapro)
-PRODUCT_PACKAGES += fstab.zumapro.vendor_ramdisk
-PRODUCT_PACKAGES += fstab.zumapro-fips.vendor_ramdisk
-PRODUCT_PACKAGES += fstab.zuma.f2fs.vendor_ramdisk
-PRODUCT_PACKAGES += fstab.zuma-fips.f2fs.vendor_ramdisk
-else ifeq ($(DEVICE_BUILD_FLAG),laguna)
-PRODUCT_PACKAGES += fstab.laguna.vendor_ramdisk
-PRODUCT_PACKAGES += fstab.laguna-fips.vendor_ramdisk
-else ifeq ($(DEVICE_BUILD_FLAG),malibu)
+# Firstage ramdisk fstab (conf-malibu/f2fs -> fstab.malibu*, Tensor G6, UFS 3c2d0000)
 PRODUCT_PACKAGES += fstab.malibu.vendor_ramdisk
 PRODUCT_PACKAGES += fstab.malibu-fips.vendor_ramdisk
-else ifeq ($(DEVICE_BUILD_FLAG),gs201)
-PRODUCT_PACKAGES += fstab.gs201.vendor_ramdisk
-PRODUCT_PACKAGES += fstab.gs201-fips.vendor_ramdisk
-else ifeq ($(DEVICE_BUILD_FLAG),gs101)
-# gs101 uses same UFS address (14700000) as gs201 — reuse gs201 fstab for now.
-PRODUCT_PACKAGES += fstab.gs201.vendor_ramdisk
-PRODUCT_PACKAGES += fstab.gs201-fips.vendor_ramdisk
-else
-PRODUCT_PACKAGES += fstab.zuma.vendor_ramdisk
-PRODUCT_PACKAGES += fstab.zuma-fips.vendor_ramdisk
-endif
 
 # service \
 # 	strace \

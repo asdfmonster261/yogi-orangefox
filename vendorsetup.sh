@@ -18,13 +18,13 @@
 # 	Please maintain this if you use this script or any part of it
 #
 
-# vendorsetup.sh — OrangeFox build variables for Pixel (Tensor G3/G4) Pixel family.
+# vendorsetup.sh - OrangeFox build variables for the Pixel 11 (malibu) family.
 # This script is sourced by the OrangeFox build system after `lunch twrp_pixels-eng`.
 # It exports all FOX_*, OF_*, TW_* environment variables that control the build,
 # and cross-compiles the LGZ compressor/decompressor binaries.
 #
 # FDEVICE must match the lunch target suffix and directory name under device/google/.
-# Runtime device detection (shiba/husky/akita) is done in runatboot.sh via ro.hardware.
+# Runtime device detection (yogi and its siblings) is done in runatboot.sh via ro.hardware.
 
 FDEVICE="pixels"
 
@@ -45,36 +45,8 @@ fi
 if [ "$1" = "$FDEVICE" -o "$FOX_BUILD_DEVICE" = "$FDEVICE" ]; then
 
 # --- Platform selection ---
-if [ -n "${DEVICE_BUILD_FLAG:-}" ]; then
-    echo ""
-    echo "=============================================="
-    echo "  DEVICE_BUILD_FLAG already set: $DEVICE_BUILD_FLAG"
-    echo "  Skipping interactive menu."
-    echo "=============================================="
-else
-echo ""
-echo "=============================================="
-echo "  Select target platform:"
-echo "  1) zuma    (Tensor G3: Pixel 8/8 Pro/8a)"
-echo "  2) zumapro (Tensor G4: Pixel 9/9 Pro/9 Pro XL/9a)"
-echo "  3) gs201   (Tensor G2: Pixel 7/7 Pro/7a)"
-echo "  4) gs101   (Tensor G1: Pixel 6/6 Pro/6a) [WIP]"
-echo "  5) laguna  (Tensor G5: Pixel 10/10 Pro/10 Pro XL)"
-echo "=============================================="
-printf "  Choice [1/2/3/4/5] (timeout 15s): "
-if read -t 15 _platform_choice 2>/dev/null; then
-    case "$_platform_choice" in
-        2) export DEVICE_BUILD_FLAG="zumapro" ;;
-        3) export DEVICE_BUILD_FLAG="gs201" ;;
-        4) export DEVICE_BUILD_FLAG="gs101" ;;
-        5) export DEVICE_BUILD_FLAG="laguna" ;;
-        *) export DEVICE_BUILD_FLAG="zuma" ;;
-    esac
-else
-    echo ""
-    export DEVICE_BUILD_FLAG="zuma"
-    echo "  Timeout — defaulting to zuma"
-fi
+if [ -z "${DEVICE_BUILD_FLAG:-}" ]; then
+    export DEVICE_BUILD_FLAG="malibu"
 fi
 echo "=============================================="
 echo "  Building for platform: $DEVICE_BUILD_FLAG"
@@ -104,56 +76,21 @@ export LC_ALL="C"
 export FOX_VIRTUAL_AB_DEVICE=1
 export FOX_AB_DEVICE=1
 export FOX_VENDOR_BOOT_RECOVERY=1
-if [ "$DEVICE_BUILD_FLAG" = "gs201" ] || [ "$DEVICE_BUILD_FLAG" = "gs101" ]; then
-    export FOX_RECOVERY_VENDOR_BOOT_PARTITION="/dev/block/platform/14700000.ufs/by-name/vendor_boot"
-elif [ "$DEVICE_BUILD_FLAG" = "laguna" ]; then
-    export FOX_RECOVERY_VENDOR_BOOT_PARTITION="/dev/block/platform/3c400000.ufs/by-name/vendor_boot"
-elif [ "$DEVICE_BUILD_FLAG" = "malibu" ]; then
-    export FOX_RECOVERY_VENDOR_BOOT_PARTITION="/dev/block/platform/3c2d0000.ufs/by-name/vendor_boot"
-else
-    export FOX_RECOVERY_VENDOR_BOOT_PARTITION="/dev/block/platform/13200000.ufs/by-name/vendor_boot"
-fi
+export FOX_RECOVERY_VENDOR_BOOT_PARTITION="/dev/block/platform/3c2d0000.ufs/by-name/vendor_boot"
 
 # --- Vanilla build (non-Xiaomi device, skip MIUI patches) ---
 export FOX_VANILLA_BUILD=1
 export OF_DISABLE_MIUI_SPECIFIC_FEATURES=1
 
 # --- Multi-device support ---
-if [ "$DEVICE_BUILD_FLAG" = "zumapro" ]; then
-    export TARGET_DEVICE_ALT="tokay,caiman,comet,komodo,tegu"
-    export FOX_TARGET_DEVICES="tokay,caiman,comet,komodo,tegu"
-elif [ "$DEVICE_BUILD_FLAG" = "gs201" ]; then
-    export TARGET_DEVICE_ALT="panther,cheetah,lynx,tangorpro,pantah"
-    export FOX_TARGET_DEVICES="panther,cheetah,lynx,tangorpro,pantah"
-elif [ "$DEVICE_BUILD_FLAG" = "gs101" ]; then
-    export TARGET_DEVICE_ALT="oriole,raven,bluejay"
-    export FOX_TARGET_DEVICES="oriole,raven,bluejay"
-elif [ "$DEVICE_BUILD_FLAG" = "laguna" ]; then
-    export TARGET_DEVICE_ALT="blazer,mustang,frankel,rango,deepspace"
-    export FOX_TARGET_DEVICES="blazer,mustang,frankel,rango,deepspace"
-elif [ "$DEVICE_BUILD_FLAG" = "malibu" ]; then
-    export TARGET_DEVICE_ALT="yogi"
-    export FOX_TARGET_DEVICES="yogi"
-else
-    export TARGET_DEVICE_ALT="shiba,husky,akita,shusky"
-    export FOX_TARGET_DEVICES="shiba,husky,akita,shusky"
-fi
+export TARGET_DEVICE_ALT="yogi"
+export FOX_TARGET_DEVICES="yogi"
 # --- OrangeFox UI ---
 # OF_SCREEN_H is the compile-time DEFAULT screen height for theme scaling.
-# Devices with different screen heights (e.g. husky=2244) override this at
+# Devices with different screen heights override this at
 # runtime via the DOF_SCREEN_H property set in runatboot.sh → data.cpp reads it.
 export OF_SCREEN_H=2400
-if [ "$DEVICE_BUILD_FLAG" = "zumapro" ]; then
-    export OF_STATUS_H=150
-elif [ "$DEVICE_BUILD_FLAG" = "gs201" ]; then
-    export OF_STATUS_H=130
-elif [ "$DEVICE_BUILD_FLAG" = "gs101" ]; then
-    export OF_STATUS_H=130
-elif [ "$DEVICE_BUILD_FLAG" = "laguna" ]; then
-    export OF_STATUS_H=150
-else
-    export OF_STATUS_H=130
-fi
+export OF_STATUS_H=130
 export OF_STATUS_INDENT_LEFT=80
 export OF_STATUS_INDENT_RIGHT=80
 export OF_HIDE_NOTCH=1

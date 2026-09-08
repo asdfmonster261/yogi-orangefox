@@ -16,8 +16,8 @@
 #   - TWRP data.cpp (DataManager reads ro.product props)
 #
 # Detects device codename from ro.hardware and applies:
-#   1. Family-common properties (zuma_common.prop)
-#   2. Device-specific properties (shiba.prop, husky.prop, etc.)
+#   1. Family-common properties (malibu_common.prop)
+#   2. Device-specific properties (yogi.prop, etc.)
 #   3. LGZ decompression of build-time compressed zip payloads
 #   4. Magisk binary extraction and link creation
 #
@@ -177,12 +177,8 @@ _log "ro.boot.mode=$(getprop ro.boot.mode 2>/dev/null)"
 _log "/dev/block contents: $(ls /dev/block/ 2>/dev/null | tr '\n' ' ')"
 
 case "$device_code" in
-    panther|cheetah|lynx|tangorpro|gs201)      family="gs201" ;;
-    shiba|husky|akita|zuma)          family="zuma" ;;
-    tokay|komodo|caiman|tegu|zumapro) family="zumapro" ;;
-    blazer|mustang|frankel|rango|deepspace|laguna) family="laguna" ;;
     yogi|malibu) family="malibu" ;;
-    *)                                family="" ;;
+    *)           family="" ;;
 esac
 _log "detected family=$family"
 
@@ -192,14 +188,6 @@ if [ -n "$family" ]; then
 fi
 apply_prop_file "${PROPS_DIR}/${device_code}.prop"
 
-if [ "$family" = "gs201" ] && [ -f /system/etc/twrp_gs201.flags ]; then
-    _log "gs201: cp twrp_gs201.flags -> twrp.flags"
-    cp -f /system/etc/twrp_gs201.flags /system/etc/twrp.flags
-fi
-if [ "$family" = "laguna" ] && [ -f /system/etc/twrp_laguna.flags ]; then
-    _log "laguna: cp twrp_laguna.flags -> twrp.flags"
-    cp -f /system/etc/twrp_laguna.flags /system/etc/twrp.flags
-fi
 if [ "$family" = "malibu" ] && [ -f /system/etc/twrp_malibu.flags ]; then
     _log "malibu: cp twrp_malibu.flags -> twrp.flags"
     cp -f /system/etc/twrp_malibu.flags /system/etc/twrp.flags
@@ -208,20 +196,8 @@ fi
 # --- USB controller setup ---
 # Must be set before on init (pixel_common.rc) which uses this property for configfs.
 _log "--- USB controller setup ---"
-case "$family" in
-    laguna)
-        resetprop sys.usb.controller "c400000.dwc3"
-        _log "  USB controller: c400000.dwc3 (laguna)"
-        ;;
-    malibu)
-        resetprop sys.usb.controller "a210000.dwc3"
-        _log "  USB controller: a210000.dwc3 (malibu)"
-        ;;
-    *)
-        resetprop sys.usb.controller "11210000.dwc3"
-        _log "  USB controller: 11210000.dwc3 (default)"
-        ;;
-esac
+resetprop sys.usb.controller "a210000.dwc3"
+_log "  USB controller: a210000.dwc3 (malibu)"
 
 _log "--- calling fix_twrp_flags ---"
 fix_twrp_flags
