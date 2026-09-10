@@ -102,25 +102,11 @@ fix_twrp_flags() {
     done
     _log "  sd? after wait (i=$i): $(ls /dev/block/sd? 2>/dev/null | tr '\n' ' ')"
 
-    # --- 1. USB OTG device auto-detection ---
-    # UFS internal disks: sda, sdb, sdc, ... OTG gets the next letter.
-    last_blk=$(ls /dev/block/sd? 2>/dev/null | sort | tail -1)
-    _log "  last internal disk: ${last_blk:-<none>}"
-    if [ -n "$last_blk" ]; then
-        last_letter="${last_blk##*sd}"
-        next_letter=$(printf '%s' "$last_letter" | tr 'abcdefghijklmnopqrstuvwxy' 'bcdefghijklmnopqrstuvwxyz')
-        _log "  OTG candidate: sd${next_letter}1  (last=sd${last_letter})"
-        if [ "$next_letter" != "$last_letter" ]; then
-            sed -i "/usb_otg/s|/dev/block/sd[a-z][0-9]*|/dev/block/sd${next_letter}1|" "$flags_file"
-            echo "I:twrp.flags: USB OTG -> /dev/block/sd${next_letter}1 (last internal: ${last_blk##*/})" >> "$LOG"
-            _log "  USB OTG patched -> sd${next_letter}1"
-        else
-            _log "  WARNING: cannot increment '$last_letter', OTG entry not patched"
-        fi
-    else
-        echo "W:twrp.flags: No /dev/block/sd? after wait, USB OTG entry unchanged" >> "$LOG"
-        _log "  WARNING: no sd? found, OTG not patched"
-    fi
+    # --- 1. USB OTG ---
+    # The stick's sdX letter drifts across attach/detach, so a fixed flag cannot
+    # track it. /usb_otg points at /dev/block/otg-usb, a stable symlink that
+    # otg_yogi.sh keeps on the current removable USB disk.
+    _log "  USB OTG: /usb_otg -> /dev/block/otg-usb (maintained by otg_yogi.sh)"
 
     # --- 2. Prune by-name entries absent on this device ---
     # Safety guard: skip prune if by-name is not populated yet.

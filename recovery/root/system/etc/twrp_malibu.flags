@@ -52,5 +52,8 @@
 
 # ============================================================
 # 7. External Storage (USB OTG)
+# The stick's sdX letter drifts across attach/detach, so this points at
+# /dev/block/otg-usb, a stable symlink otg_yogi.sh keeps on the current
+# removable USB disk. Do not pin a letter here.
 # ============================================================
-/usb_otg             auto    /dev/block/sdd1                                                    flags=display="USB OTG (External Drive)";storage;wipeingui;removable;fsflags="utf8"
+/usb_otg             auto    /dev/block/otg-usb                                                    flags=display="USB OTG (External Drive)";storage;wipeingui;removable;fsflags="utf8"
