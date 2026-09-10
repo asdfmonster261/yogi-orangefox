@@ -228,11 +228,7 @@ on boot
     setprop sys.usb.configfs 1
     # Enable in-kernel media-presence polling for SD cards
     write /sys/module/block/parameters/events_dfl_poll_msecs 2000
-    start otg_enable
-
-# Start automatic OTG daemon once otg_patch.sh has set patch_dwc3=1
-on property:sys.usb.patch_dwc3=1
-    start otg_auto
+    start otg_yogi
 
 on property:sys.usb.ffs.ready=1
     mkdir /config/usb_gadget/g1/configs/b.1
@@ -298,7 +294,10 @@ on property:ro.boot.usbconfigfs=false
 
 on property:ro.boot.usbcontroller=*
     setprop sys.usb.controller ${ro.boot.usbcontroller}
-    write /sys/class/udc/${ro.boot.usbcontroller}/device/../mode peripheral
+    # Do not pin the controller to peripheral. yogi decides the USB role with
+    # google-usb-role-sw; pinning peripheral for adb blocks the switch to host,
+    # so OTG never engages. Left dual-role, a PC still resolves to device (adb)
+    # from the VBUS/CC vote, while a plugged device can resolve to host.
 
 on property:sys.usb.config=none && property:sys.usb.configfs=1
     write /config/usb_gadget/g1/UDC ""
@@ -332,15 +331,6 @@ on boot
     chown system system /sys/class/android_usb/android0/bDeviceClass
     chmod 0660 /sys/class/android_usb/android0/bDeviceClass
 
-
-service otg_enable /system/bin/sh /system/bin/otg_patch.sh
-    disabled
-    oneshot
-    seclabel u:r:recovery:s0
-
-
-service otg_auto /system/bin/sh /system/bin/otg_auto_v3.sh
+service otg_yogi /system/bin/sh /system/bin/otg_yogi.sh
     disabled
     seclabel u:r:recovery:s0
-
-
