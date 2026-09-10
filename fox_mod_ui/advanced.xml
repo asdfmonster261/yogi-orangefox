@@ -355,6 +355,25 @@
 					<action function="queuezip"/>
 					<action function="flash">aroma_busy</action>
 				</listitem>
+				<!-- CPU governor for the recovery UI. The renderer is single threaded software
+				     blitting, so the clocks decide how smooth it is. Shows the current mode;
+				     tapping switches, and applies it now as well as at the next boot. -->
+				<listitem name="{@perf_conf_mode}: {@perf_conf_high}">
+					<condition var1="fox_boot_performance_check" var2="1"/>
+					<icon res="bs_adv_se"/>
+					<action function="set">fox_boot_performance_check=0</action>
+					<action function="set">fox_boot_powersave_check=0</action>
+					<action function="set">fox_boot_balance_check=1</action>
+					<action function="cmd">for c in /sys/devices/system/cpu/cpu[0-9]/cpufreq/scaling_governor; do echo schedutil &gt; $c; done</action>
+				</listitem>
+				<listitem name="{@perf_conf_mode}: {@perf_conf_balance}">
+					<condition var1="fox_boot_performance_check" op="!=" var2="1"/>
+					<icon res="bs_adv_se"/>
+					<action function="set">fox_boot_balance_check=0</action>
+					<action function="set">fox_boot_powersave_check=0</action>
+					<action function="set">fox_boot_performance_check=1</action>
+					<action function="cmd">for c in /sys/devices/system/cpu/cpu[0-9]/cpufreq/scaling_governor; do echo performance &gt; $c; done</action>
+				</listitem>
 			</listbox>
 
 			<template name="base_nav"/>
