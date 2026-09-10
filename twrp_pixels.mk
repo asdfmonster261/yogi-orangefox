@@ -28,6 +28,11 @@ $(call inherit-product, vendor/twrp/config/common.mk)
 # Inherit from pixels device tree
 $(call inherit-product, device/google/pixels/device.mk)
 
+# Trust Google's OTA signing key so a stock full OTA verifies for update_engine
+# sideload (the default otacerts.zip carries only the AOSP test and LineageOS keys).
+PRODUCT_EXTRA_RECOVERY_KEYS += \
+    device/google/pixels/security/google-ota
+
 # Product Name — "pixels" is a universal target covering all Tensor SoC Pixels.
 # The recovery image auto-detects the device at runtime via ro.hardware.
 PRODUCT_RELEASE_NAME := pixels
