@@ -37,7 +37,7 @@ jobs:
 
     steps:
       - name: Check out the device tree
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           path: devicetree
 
@@ -64,7 +64,7 @@ jobs:
       # The fox scripts invoke a bare `python`, which a runner does not provide at all.
       # 3.11 rather than whatever is newest because main3's 3.14 broke them, and 3.11 is
       # what the conda env there pins.
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.11'
 
@@ -133,7 +133,7 @@ jobs:
           unzip -l out/OrangeFox-R12.0-yogi.zip | grep -q 'tools/magiskboot'
           head -1 out/create-orangefox-yogi.sh | grep -q '^#!'
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: OrangeFox-R12.0-yogi
           path: out/*
