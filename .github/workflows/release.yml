@@ -90,7 +90,11 @@ jobs:
           git config --global user.email ci@example.com
           git config --global user.name ci
           git clone --depth=1 "$SYNC" "$HOME/sync"
-          bash "$HOME/sync/orangefox_sync.sh" --branch "$OF_BRANCH" --path "$FOX"
+          # orangefox_sync.sh sets BASE_DIR="$PWD" and resolves its patch files from
+          # there, so it has to run from inside its own clone. Invoking it by path from
+          # anywhere else dies with "I cannot find the patch file".
+          cd "$HOME/sync"
+          bash ./orangefox_sync.sh --branch "$OF_BRANCH" --path "$FOX"
           df -h / | tail -1
 
       - name: Overlay our device tree
