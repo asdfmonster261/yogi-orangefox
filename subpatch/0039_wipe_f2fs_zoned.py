@@ -24,8 +24,16 @@ class SubPatch(BaseSubPatch):
         # the kernel does not expect at mount.
         self.CHANGES = [
             (
-                r"""	f2fs_command += " " + Actual_Block_Device + " " + dev_sz_str;""",
-                r"""	// Block size. AOSP passes this and TWRP did not.
+                r"""	// FsCompress
+	if (Needs_Fs_Compress)
+		f2fs_command += " -O compression,extra_attr";
+
+	f2fs_command += " " + Actual_Block_Device + " " + dev_sz_str;""",
+                r"""	// FsCompress
+	if (Needs_Fs_Compress)
+		f2fs_command += " -O compression,extra_attr";
+
+	// Block size. AOSP passes this and TWRP did not.
 	const std::string blk_sz_str = std::to_string(getpagesize());
 	f2fs_command += " -w " + blk_sz_str + " -b " + blk_sz_str;
 
@@ -39,6 +47,21 @@ class SubPatch(BaseSubPatch):
 	if (!zoned_device.empty())
 		f2fs_command += " -c " + zoned_device + " -m " + Actual_Block_Device;
 	else
-		f2fs_command += " " + Actual_Block_Device + " " + dev_sz_str;""",
+		f2fs_command += " " + Actual_Block_Device + " " + dev_sz_str;
+
+	// sload_f2fs below cannot handle the result. It has no way to be told about a second
+	// device -- its -c is "enable compression", not "add device" -- so it reads the new
+	// superblock, sees Device[1], fails to open it and exits 255. Chained with &&, that
+	// turns a successful mkfs into "Unable to wipe Data". AOSP's format_f2fs() never runs
+	// sload at all, and with no -f source directory it does nothing anyway.
+	const bool skip_sload = !zoned_device.empty();""",
+            ),
+            (
+                r"""	if (TWFunc::Path_Exists("/system/bin/sload_f2fs")) {
+		f2fs_command += " && sload_f2fs -t /data " + Actual_Block_Device;
+	}""",
+                r"""	if (!skip_sload && TWFunc::Path_Exists("/system/bin/sload_f2fs")) {
+		f2fs_command += " && sload_f2fs -t /data " + Actual_Block_Device;
+	}""",
             ),
         ]
