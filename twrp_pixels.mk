@@ -30,8 +30,14 @@ $(call inherit-product, device/google/pixels/device.mk)
 
 # Trust Google's OTA signing key so a stock full OTA verifies for update_engine
 # sideload (the default otacerts.zip carries only the AOSP test and LineageOS keys).
+#
+# heybooboo-ota is the same idea for the rom built for these devices. update_engine verifies
+# a payload against the certificates in the recovery's own otacerts.zip, so a rom signed with
+# a private key is refused no matter that the bootloader is unlocked. Without this the only
+# way to install it is fastboot.
 PRODUCT_EXTRA_RECOVERY_KEYS += \
-    device/google/pixels/security/google-ota
+    device/google/pixels/security/google-ota \
+    device/google/pixels/security/heybooboo-ota
 
 # Product Name — "pixels" is a universal target covering all Tensor SoC Pixels.
 # The recovery image auto-detects the device at runtime via ro.hardware.
