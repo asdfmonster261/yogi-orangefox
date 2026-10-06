@@ -632,6 +632,29 @@ case "$CALL_TYPE" in
             fi
         fi
 
+        # --- GPU: the sphal linker namespace ---
+        # The PowerVR driver needs newer libraries than this recovery has (libc++,
+        # libbinder), so minuitwrp_gl loads it into a sphal namespace, the way Android
+        # loads a vendor driver into a system process. gpu_stage.sh reads the shared list
+        # from here and copies everything else the driver links into /vendor/lib64.
+        ldconfig="$TARGET_DIR/system/etc/ld.config.txt"
+        if [ "$(grep '^\[' "$ldconfig" 2>/dev/null | tail -n 1)" = "[recovery]" ]; then
+            grep -q '^namespace\.sphal\.' "$ldconfig" || cat >> "$ldconfig" <<'LDCONFIG'
+additional.namespaces = sphal
+namespace.sphal.isolated = true
+namespace.sphal.visible = true
+namespace.sphal.search.paths = /vendor/${LIB}/egl
+namespace.sphal.search.paths += /vendor/${LIB}/hw
+namespace.sphal.search.paths += /vendor/${LIB}
+namespace.sphal.permitted.paths = /vendor/${LIB}
+namespace.sphal.links = default
+namespace.sphal.link.default.shared_libs = libc.so:libdl.so:libdl_android.so:libm.so:liblog.so:libsync.so:libvndksupport.so
+LDCONFIG
+            echo "    [GPU] + sphal linker namespace"
+        else
+            echo "    [GPU] WARNING: $ldconfig does not end in [recovery], so no GPU path"
+        fi
+
         # --- LGZ: Compress ramdisk binaries for space savings ---
         echo ""
         echo "    === LGZ Ramdisk Compression ==="
