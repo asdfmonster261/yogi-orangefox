@@ -21,7 +21,7 @@
 # ============================================================
 # 2. Metadata (FBE key wrapping) + Internal Storage
 # ============================================================
-/metadata            f2fs    /dev/block/platform/3c2d0000.ufs/by-name/metadata                  flags=display="Metadata (FBE crypto info)";backup=1;wipeingui;wrappedkey
+/metadata            f2fs    /dev/block/platform/3c2d0000.ufs/by-name/metadata                  flags=display="Metadata (FBE crypto info)";backup=1;wrappedkey
 /storage             ext4    /data/media/0                                                      flags=display="Internal Storage (Files / sdcard)";backup=1;usermrf;fsflags="bind";removable
 
 # ============================================================
