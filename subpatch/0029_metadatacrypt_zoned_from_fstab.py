@@ -20,7 +20,9 @@ class SubPatch(BaseSubPatch):
     }""",
                 r"""    const std::string& zoned_dev = zoned_device.empty() ? data_rec->zoned_device : zoned_device;
     auto default_metadata_key_dir = data_rec->metadata_key_dir;
-    if (!zoned_dev.empty()) {
+    // vold keeps the primary device's key under default/ whenever /data spans more than
+    // one device, zoned or not. A 256 GB phone has expansion devices and no zoned one.
+    if (!zoned_dev.empty() || !data_rec->user_devices.empty()) {
         default_metadata_key_dir = default_metadata_key_dir + "/default";
     }""",
             ),
