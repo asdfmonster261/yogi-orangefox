@@ -1,0 +1,13 @@
+cc_library_static {
+    name: "libminuitwrp_gl",
+    srcs: ["minuitwrp_gl.cpp"],
+    export_include_dirs: ["include"],
+    include_dirs: [
+        "bootable/recovery/libpixelflinger/include",
+        "frameworks/native/opengl/include",
+    ],
+    cflags: [
+        "-Wall",
+        "-Wno-non-c-typedef-for-linkage",
+    ],
+}
