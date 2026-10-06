@@ -296,9 +296,10 @@ if [ -n "$modules_touch" ]; then
         fi
 
         if mount -r "$blk" "$tmp_mnt" 2>>"$LOGF"; then
-            local _copied=0
             cp "$tmp_mnt"/firmware/* /vendor/firmware/ 2>>"$LOGF"
             umount "$tmp_mnt" 2>/dev/null
+            echo "I:vendor_fw: Firmware copied from $blk" >> "$LOGF"
+            return 0
         else
             echo "W:vendor_fw: Cannot mount $blk" >> "$LOGF"
         fi
