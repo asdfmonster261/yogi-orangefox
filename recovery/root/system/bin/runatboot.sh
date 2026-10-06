@@ -323,12 +323,13 @@ if [ -n "$modules_touch" ]; then
 
     modules_touch_install
 
-    soc_family=$(getprop ro.recovery.soc_family)
-    cs40l26_pm="/sys/devices/platform/10c80000.hsi2c/i2c-0/0-0043/power/control"
-    if [ -f "$cs40l26_pm" ]; then
+    # Keep the haptics chip out of runtime suspend. Find it through its driver, as
+    # its I2C bus differs between SoCs (bus 8 on malibu).
+    for cs40l26_pm in /sys/bus/i2c/drivers/cs40l26/*/power/control; do
+        [ -f "$cs40l26_pm" ] || continue
         echo on > "$cs40l26_pm"
-        echo "I:haptics: CS40L26 runtime PM set to 'on'" >> "$LOGF"
-    fi
+        echo "I:haptics: CS40L26 runtime PM set to 'on' (${cs40l26_pm%/power/control})" >> "$LOGF"
+    done
 fi
 
 if [ -c "/dev/lwis-flash-lm3644" ]; then
