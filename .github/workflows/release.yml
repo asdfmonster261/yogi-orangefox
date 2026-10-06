@@ -155,5 +155,7 @@ jobs:
 
           Only yogi is hardware-tested. cubs, grizzly and kodiak are blind ports.
           MD
+          # The checkout is in devicetree/, so gh cannot find the repository from here.
           gh release create "${{ inputs.release_tag }}" out/* \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
             --title "OrangeFox R12.0 (malibu)" --notes-file notes.md
