@@ -145,7 +145,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           cat > notes.md <<'MD'
-          OrangeFox Recovery R12.0 for the Pixel 11 family (yogi, cubs, grizzly, kodiak).
+          OrangeFox Recovery R12.0 for the Pixel 11 family.
 
           | file | use |
           |---|---|
@@ -153,7 +153,7 @@ jobs:
           | `create-orangefox-yogi.sh` | First install with no root and no custom recovery. Run it on a PC or in Termux; it fetches the image below and grafts it against your own stock vendor_boot. |
           | `OrangeFox-R12.0-yogi-unassembled.img` | Downloaded by the script above. NOT flashable on its own. |
 
-          Only yogi is hardware-tested. cubs, grizzly and kodiak are blind ports.
+          Only yogi is hardware-tested.
           MD
           # The checkout is in devicetree/, so gh cannot find the repository from here.
           gh release create "${{ inputs.release_tag }}" out/* \
