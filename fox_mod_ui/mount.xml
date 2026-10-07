@@ -225,6 +225,84 @@
 			</action>
 		</page>
 
+		<page name="data_checkpoint">
+			<template name="body_ct"/>
+
+			<image>
+				<image resource="actionbar_settings"/>
+				<placement x="%center_x%" y="%centered_title_1%" placement="4"/>
+			</image>
+
+			<text style="text_ab_subtitle">
+				<placement x="%center_x%" y="%centered_title_2%" placement="4"/>
+				<text>Android Update Pending</text>
+			</text>
+
+			<image>
+				<placement x="%col1_x%" y="%row2_1a_y%"/>
+				<image resource="icon_info"/>
+			</image>
+
+			<text style="text_body2_hl">
+				<placement x="%col1_x_indent%" y="%row2_1a_y%"/>
+				<text>{@ts_inform}</text>
+			</text>
+
+			<text style="text_body2">
+				<placement x="%col1_x_indent%" y="%row2_3_y%"/>
+				<text>Android has an update to finish, which</text>
+			</text>
+
+			<text style="text_body2">
+				<placement x="%col1_x_indent%" y="%row3_1_y%"/>
+				<text>it does the next time it boots fully.</text>
+			</text>
+
+			<text style="text_body2">
+				<placement x="%col1_x_indent%" y="%row3_2_y%"/>
+				<text>Until then, changes made to Data here,</text>
+			</text>
+
+			<text style="text_body2">
+				<placement x="%col1_x_indent%" y="%row3_3_y%"/>
+				<text>such as backups and installed files,</text>
+			</text>
+
+			<text style="text_body2">
+				<placement x="%col1_x_indent%" y="%row4_1_y%"/>
+				<text>are lost when you reboot.</text>
+			</text>
+
+			<text style="text_body2_fail">
+				<placement x="%col1_x_indent%" y="%row4_2a_y%"/>
+				<text>Boot Android once before making changes.</text>
+			</text>
+
+			<button style="btn_raised_hl">
+				<placement x="%btn_raised_right_x%" y="%row_btn2_y%" placement="1"/>
+				<text>{@ok_btn}</text>
+				<actions>
+					<action function="set">tw_page_done=1</action>
+					<action function="page">main</action>
+				</actions>
+			</button>
+
+			<template name="navbar"/>
+			<template name="gestures"/>
+
+			<action>
+				<touch key="back"/>
+				<action function="set">tw_page_done=1</action>
+				<action function="page">main</action>
+			</action>
+
+			<action>
+				<touch key="home"/>
+				<action function="set">tw_page_done=1</action>
+				<action function="page">main</action>
+			</action>
+		</page>
+
 		<page name="decrypt">
 			<action>
 				<condition var1="tw_crypto_pwtype" var2="2"/>
