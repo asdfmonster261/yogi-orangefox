@@ -76,20 +76,35 @@ put() {
     staged="$staged $2"
 }
 
-# Load module $1, named as modules.dep names it, after the modules it needs. Those
-# under /vendor/lib/modules come from vendor_dlkm and those under /system/lib/modules
-# from system_dlkm, so whichever partitions they are on must be attached.
+# Find module file $1 on the attached dlkm partitions: stock keeps them flat under
+# lib/modules, but a custom kernel may flash a kernel install tree under
+# lib/modules/<version> instead.
+modfile() {
+    local p f
+    for p in vendor_dlkm system_dlkm; do
+        [ -d $WORK/$p/lib/modules ] || continue
+        f=$WORK/$p/lib/modules/$1
+        [ -f $f ] || f=$(find $WORK/$p/lib/modules -name $1 -type f 2> /dev/null | head -n 1)
+        [ -n "$f" ] && { echo $f; return 0; }
+    done
+    return 1
+}
+
+# Load module $1, a file name or a path as modules.dep writes it, after the modules it
+# needs, from the modules.dep of whichever tree holds it. Every partition a dependency
+# may sit on has to be attached.
 load() {
-    local mod=$1 file name dep
-    case $mod in
-        /vendor/lib/modules/*) file=$WORK/vendor_dlkm${mod#/vendor} ;;
-        /system/lib/modules/*) file=$WORK/system_dlkm${mod#/system} ;;
-        *) echo "no partition holds $mod"; return 1 ;;
-    esac
-    name=${mod##*/}
+    local name=${1##*/} file root re deps dep
     grep -q "^$(echo ${name%.ko} | tr - _) " /proc/modules && return 0
-    [ -f $file ] || { echo "$mod is not on an attached partition"; return 1; }
-    for dep in $(sed -n "s|^$mod: *||p" ${file%/*}/modules.dep); do
+    file=$(modfile $name) || { echo "$name is not on an attached partition"; return 1; }
+    root=${file%%/lib/modules/*}/lib/modules
+    re=$(echo $name | sed 's/[.]/\\./g')
+    for dep in $root/modules.dep $root/*/modules.dep; do
+        [ -f $dep ] || continue
+        deps=$(sed -nE "s#^(.*/)?$re: *##p" $dep | head -n 1)
+        [ -n "$deps" ] && break
+    done
+    for dep in $deps; do
         load $dep || return 1
     done
     insmod $file
