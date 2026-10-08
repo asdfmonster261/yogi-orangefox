@@ -4,12 +4,13 @@ from patch import BaseSubPatch
 class SubPatch(BaseSubPatch):
     def __init__(self, manager):
         super().__init__(manager)
-        self.name = "recovery: refuse to format /data"
+        self.name = "recovery: refuse to mkfs /data"
         self.target_file = "bootable/recovery/partition.cpp"
 
-        # Formatting yogi's zoned, multi-device /data is suspected in damage to its UFS,
-        # so it is off. Format Data still opens, and is refused before /data is unmounted
-        # or its mappings are torn down. Wiping files (rm -rf) is not affected.
+        # Format Data leaves the format to Android, as the stock factory reset does (0044).
+        # These refuse every other path into a /data mkfs: TWRP's own format, a file
+        # system change, or a restore made on a different file system. Formatting yogi's
+        # zoned, multi-device /data from recovery is suspected in damage to its UFS.
         self.CHANGES = [
             (
                 r"""
@@ -31,13 +32,11 @@ bool TWPartition::Wipe_Encryption() {
 		return false;
 
 	if (Mount_Point == "/data") {
-		gui_err("format_data_disabled=Formatting /data is disabled on this device.");
+		gui_err("format_data_disabled=Formatting /data this way is disabled on this device; use Format Data.");
 		return false;
 	}
 """
             ),
-            # The same refusal where every other path into mkfs ends: a file system
-            # change, or a restore made on a different file system.
             (
                 r"""
 bool TWPartition::Wipe_EXT4() {
@@ -46,7 +45,7 @@ bool TWPartition::Wipe_EXT4() {
                 r"""
 bool TWPartition::Wipe_EXT4() {
 	if (Mount_Point == "/data") {
-		gui_err("format_data_disabled=Formatting /data is disabled on this device.");
+		gui_err("format_data_disabled=Formatting /data this way is disabled on this device; use Format Data.");
 		return false;
 	}
 #ifdef USE_EXT4
@@ -65,7 +64,7 @@ bool TWPartition::Wipe_F2FS() {
 	std::string f2fs_command;
 
 	if (Mount_Point == "/data") {
-		gui_err("format_data_disabled=Formatting /data is disabled on this device.");
+		gui_err("format_data_disabled=Formatting /data this way is disabled on this device; use Format Data.");
 		return false;
 	}
 
