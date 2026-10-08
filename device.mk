@@ -82,6 +82,11 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
     recovery_weaver
 
+# Format Data: erases the Titan M3's user secrets, as the stock factory reset does.
+# Built on stock's own Titan M client library, which only has a system variant, so it
+# is copied in rather than built for recovery.
+RECOVERY_BINARY_SOURCE_FILES += $(TARGET_OUT_EXECUTABLES)/titan_wipe
+
 
 
 # Firstage ramdisk fstab (conf-malibu/f2fs -> fstab.malibu*, Tensor G6, UFS 3c2d0000)
